@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="コンサル一年目の実戦教科書。読む、解く、つくる、振り返るを一つに。" />
+  <title>Consulting Fundamentals Atlas</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へ移動</a>
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" aria-label="メインナビゲーション">
+      <div class="brand-wrap">
+        <img class="brand-icon" src="assets/icon-192.png" alt="" />
+        <div>
+          <p class="eyebrow">LEARNING OS</p>
+          <h1>Consulting<br />Fundamentals Atlas</h1>
+        </div>
+      </div>
+
+      <nav class="main-nav" id="mainNav">
+        <button class="nav-item is-active" data-view="home"><span class="nav-icon">⌂</span>ホーム</button>
+        <button class="nav-item" data-view="diagnostic"><span class="nav-icon">◎</span>はじめる</button>
+        <button class="nav-item" data-view="work"><span class="nav-icon">⌕</span>仕事に使う</button>
+        <button class="nav-item" data-view="weakness"><span class="nav-icon">↻</span>弱点マップ</button>
+        <button class="nav-item" data-view="map"><span class="nav-icon">⌘</span>学習マップ</button>
+        <button class="nav-item" data-view="lesson"><span class="nav-icon">▤</span>教科書</button>
+        <button class="nav-item" data-view="practice"><span class="nav-icon">✦</span>問題演習</button>
+        <button class="nav-item" data-view="workspace"><span class="nav-icon">▥</span>財務ワークスペース</button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">▧</span>成果物ライブラリ</button>
+        <button class="nav-item" data-view="review"><span class="nav-icon">↻</span>振り返り</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button class="profile-card" id="profileButton" type="button" aria-haspopup="dialog">
+          <span class="avatar" id="profileAvatar">Y</span>
+          <span class="profile-copy">
+            <strong id="profileName">学習者</strong>
+            <small id="profileGoal">財務を重点的に</small>
+          </span>
+          <span aria-hidden="true">›</span>
+        </button>
+        <button class="nav-item settings-nav" data-view="settings"><span class="nav-icon">⚙</span>設定・データ</button>
+      </div>
+    </aside>
+
+    <main class="main-content" id="main" tabindex="-1">
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" aria-label="ナビゲーションを開く" aria-expanded="false">☰</button>
+        <div class="breadcrumbs" id="breadcrumbs">ホーム <span>/</span> 今日の学習</div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="quickNoteButton" title="クイックメモ">＋</button>
+          <button class="icon-button" id="themeButton" title="表示モード切替">◐</button>
+        </div>
+      </header>
+      <div id="viewRoot" class="view-root"></div>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog class="modal" id="profileModal">
+    <form method="dialog" class="modal-card" id="profileForm">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">PROFILE</p>
+          <h2>学習プロファイル</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-modal="profileModal" aria-label="閉じる">×</button>
+      </div>
+      <p class="muted">ここで設定した内容が、ホームの「今日やる一手」とスペシャル問題に反映されます。</p>
+      <div class="form-grid">
+        <label>表示名<input id="inputProfileName" maxlength="24" placeholder="例：平 雄介" /></label>
+        <label>主な目標<select id="inputProfileGoal">
+          <option value="finance">財務分析を重点的に学びたい</option>
+          <option value="consulting">コンサル業務の基礎を固めたい</option>
+          <option value="business">企画・事業開発に活かしたい</option>
+          <option value="materials">資料・分析の精度を上げたい</option>
+        </select></label>
+        <label>1回に確保できる時間<select id="inputSessionLength">
+          <option value="15">15分</option>
+          <option value="30" selected>30分</option>
+          <option value="45">45分</option>
+          <option value="60">60分</option>
+        </select></label>
+        <label>財務の現在地<select id="inputFinanceLevel">
+          <option value="starter">ほぼ初めて</option>
+          <option value="basic" selected>三表は見たことがある</option>
+          <option value="intermediate">基礎指標は読める</option>
+          <option value="advanced">実務で使ったことがある</option>
+        </select></label>
+      </div>
+      <div class="modal-actions">
+        <button class="button ghost" type="button" data-close-modal="profileModal">キャンセル</button>
+        <button class="button primary" id="saveProfileButton" value="default">保存する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="quickNoteModal">
+    <form method="dialog" class="modal-card compact" id="quickNoteForm">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">QUICK NOTE</p>
+          <h2>気づきを残す</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-modal="quickNoteModal" aria-label="閉じる">×</button>
+      </div>
+      <label>メモ<textarea id="quickNoteText" rows="6" placeholder="例：営業CFを見るときは、利益だけでなく売掛金・在庫の増減から先に確認する。"></textarea></label>
+      <div class="modal-actions">
+        <button class="button ghost" type="button" data-close-modal="quickNoteModal">キャンセル</button>
+        <button class="button primary" id="saveQuickNoteButton" value="default">ライブラリに保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
