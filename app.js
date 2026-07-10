@@ -58,7 +58,7 @@
       work: { query: '営業利益率', recentTopics: ['営業利益率'] }
     },
     journey: {
-      activeLessonId: 'lesson-03-01',
+      activeLessonId: 'lesson-00-01',
       completedLessons: [],
       lessons: {}
     },
@@ -414,7 +414,7 @@
     const step = Math.min(lessonState.step || 0, 5);
     const percent = Math.round((completed / JOURNEY.lessons.length) * 100);
     if (completed === JOURNEY.lessons.length) {
-      root.innerHTML = `<section class="journey-finished"><p class="eyebrow">PILOT JOURNEY COMPLETE</p><div class="review-stamp">REVIEWED <span>3 CASE FILES</span></div><h2>三つの案件を、完走した。</h2><p>問いを立て、数字を読み、一枚で伝える。学んだ内容は成果物ライブラリに残っている。</p><div class="today-actions"><button class="button primary" data-view="library">成果物を見る</button><button class="button ghost" data-view="map">43章のAtlasへ</button><button class="button ghost" data-journey-restart>もう一度見る</button></div></section>`;
+      root.innerHTML = `<section class="journey-finished"><p class="eyebrow">FOUNDATION JOURNEY COMPLETE</p><div class="review-stamp">REVIEWED <span>${JOURNEY.lessons.length} CASE FILES</span></div><h2>基礎Journeyを、完走した。</h2><p>仕事の土台をつくり、問いを立て、数字を読み、一枚で伝える。学んだ内容は成果物ライブラリに残っている。</p><div class="today-actions"><button class="button primary" data-view="library">成果物を見る</button><button class="button ghost" data-view="map">43章のAtlasへ</button><button class="button ghost" data-journey-restart>もう一度見る</button></div></section>`;
       bindCommonEvents();
       root.querySelector('[data-journey-restart]').addEventListener('click', () => { state.journey.activeLessonId = JOURNEY.lessons[0].id; persist(); activeView = 'journey'; render(); });
       return;
@@ -444,6 +444,7 @@
       </section>
 
       <section class="home-utility-grid" aria-label="別の使い方">
+        <button class="home-utility" data-action="open-route" data-route="start"><span>◎</span><div><strong>3分診断で現在地を確認</strong><small>基礎を飛ばして進めるか確かめる</small></div><b>→</b></button>
         <button class="home-utility" data-view="work"><span>⌕</span><div><strong>今の仕事から探す</strong><small>論点、数字、分析メモをすぐ取り出す</small></div><b>→</b></button>
         <button class="home-utility" data-view="weakness"><span>↻</span><div><strong>弱点を一問だけ復習</strong><small>自信ありの誤答から戻る場所を選ぶ</small></div><b>→</b></button>
         <button class="home-utility" data-view="map"><span>⌘</span><div><strong>43章のAtlasを開く</strong><small>必要な知識を自由に調べる</small></div><b>→</b></button>
@@ -475,6 +476,8 @@
 
   function isJourneyLessonUnlocked(lesson) {
     const index = JOURNEY.lessons.findIndex((item) => item.id === lesson.id);
+    const testedOutToFinance = Number(state.experience?.diagnostic?.score) >= 5 && lesson.chapterId === 'chapter-09';
+    if (testedOutToFinance) return true;
     return index === 0 || state.journey.completedLessons.includes(lesson.id) || state.journey.completedLessons.includes(JOURNEY.lessons[index - 1].id);
   }
 

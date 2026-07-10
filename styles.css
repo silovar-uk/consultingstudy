@@ -541,7 +541,7 @@ a { color: inherit; }
 .next-step-line span { border-radius:999px; padding:6px 10px; color:#ffd9d9; background:rgba(220,68,68,.18); font-size:10px; font-weight:800; }
 .case-next-button { position:relative; z-index:2; width:60px; height:60px; border:0; border-radius:50%; color:white; background:var(--accent); font-size:26px; box-shadow:0 10px 24px rgba(214,66,66,.3); transition:transform .18s ease; }
 .case-next-button:hover { transform:translateX(3px); }
-.home-utility-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; max-width:1080px; margin:20px auto; }
+.home-utility-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; max-width:1080px; margin:20px auto; }
 .home-utility { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:12px; min-height:88px; padding:16px 18px; border:1px solid var(--line); border-radius:17px; color:var(--ink); background:var(--surface); text-align:left; box-shadow:var(--shadow-soft); }
 .home-utility > span { display:grid; width:38px; height:38px; place-items:center; border-radius:12px; color:var(--blue); background:var(--blue-soft); font-size:18px; }
 .home-utility strong,.home-utility small { display:block; }
