@@ -25,16 +25,18 @@
 
       <nav class="main-nav" id="mainNav">
         <button class="nav-item is-active" data-view="home"><span class="nav-icon">⌂</span>ホーム</button>
-        <button class="nav-item" data-view="diagnostic"><span class="nav-icon">◎</span>はじめる</button>
-        <button class="nav-item" data-view="work"><span class="nav-icon">⌕</span>仕事に使う</button>
-        <button class="nav-item" data-view="weakness"><span class="nav-icon">↻</span>弱点マップ</button>
-        <button class="nav-item" data-view="map"><span class="nav-icon">⌘</span>学習マップ</button>
-        <button class="nav-item" data-view="lesson"><span class="nav-icon">▤</span>教科書</button>
-        <button class="nav-item" data-view="practice"><span class="nav-icon">✦</span>問題演習</button>
-        <button class="nav-item" data-view="workspace"><span class="nav-icon">▥</span>財務ワークスペース</button>
-        <button class="nav-item" data-view="library"><span class="nav-icon">▧</span>成果物ライブラリ</button>
+        <button class="nav-item" data-view="journey"><span class="nav-icon">→</span>Journey</button>
+        <button class="nav-item" data-view="workspace"><span class="nav-icon">▥</span>Studio</button>
         <button class="nav-item" data-view="review"><span class="nav-icon">↻</span>振り返り</button>
       </nav>
+
+      <div class="sidebar-tools">
+        <p class="sidebar-label">QUICK TOOLS</p>
+        <button class="nav-item" data-view="work"><span class="nav-icon">⌕</span>仕事から探す</button>
+        <button class="nav-item" data-view="weakness"><span class="nav-icon">◎</span>弱点マップ</button>
+        <button class="nav-item" data-view="map"><span class="nav-icon">⌘</span>Atlas</button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">▧</span>成果物</button>
+      </div>
 
       <div class="sidebar-bottom">
         <button class="profile-card" id="profileButton" type="button" aria-haspopup="dialog">
@@ -120,6 +122,7 @@
   </dialog>
 
   <script src="data.js"></script>
+  <script src="journey-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
