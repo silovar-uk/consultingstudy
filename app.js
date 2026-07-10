@@ -2,6 +2,7 @@
   'use strict';
 
   const DATA = window.ATLAS_DATA;
+  const JOURNEY = window.ATLAS_JOURNEY;
   const STORAGE_KEY = 'consulting-fundamentals-atlas-v1';
   const THEME_KEY = 'consulting-fundamentals-atlas-theme';
   const root = document.getElementById('viewRoot');
@@ -55,6 +56,11 @@
       selectedRoute: 'home',
       diagnostic: { completed: false, answers: {}, score: null, bySkill: {}, completedAt: null },
       work: { query: '営業利益率', recentTopics: ['営業利益率'] }
+    },
+    journey: {
+      activeLessonId: 'lesson-03-01',
+      completedLessons: [],
+      lessons: {}
     },
     settings: { theme: 'system' }
   };
@@ -394,80 +400,207 @@
     stopTimer();
     activeNav(activeView);
     appShell.classList.remove('nav-open');
-    const renderers = { home: renderHome, diagnostic: renderDiagnostic, work: renderWork, weakness: renderWeakness, map: renderMap, lesson: renderLesson, practice: renderPractice, workspace: renderWorkspace, library: renderLibrary, review: renderReview, settings: renderSettings };
+    const renderers = { home: renderHome, journey: renderJourney, diagnostic: renderDiagnostic, work: renderWork, weakness: renderWeakness, map: renderMap, lesson: renderLesson, practice: renderPractice, workspace: renderWorkspace, library: renderLibrary, review: renderReview, settings: renderSettings };
     (renderers[activeView] || renderHome)();
   }
 
   function renderHome() {
-    setBreadcrumb('ホーム', '学び方を選ぶ');
-    const next = getNextChapter();
-    const finance = getFinanceProgress();
-    const weakness = getWeaknessMap();
-    const urgent = [...weakness].sort((a, b) => a.score - b.score)[0];
-    const diagnostic = getDiagnosticResult();
-    const sessionLength = Number(state.profile.sessionLength || 30);
+    setBreadcrumb('ホーム', '今日の一歩');
+    const lesson = getCurrentJourneyLesson();
+    const lessonState = getJourneyLessonState(lesson.id);
+    const phase = JOURNEY.phases.find((item) => item.id === lesson.phaseId);
+    const completed = state.journey.completedLessons.length;
+    const stepTitles = ['まず、予想する', 'ケースを動かす', '自分の言葉にする', '型につなぐ', '資料を閉じて思い出す', '成果物にする'];
+    const step = Math.min(lessonState.step || 0, 5);
+    const percent = Math.round((completed / JOURNEY.lessons.length) * 100);
+    if (completed === JOURNEY.lessons.length) {
+      root.innerHTML = `<section class="journey-finished"><p class="eyebrow">PILOT JOURNEY COMPLETE</p><div class="review-stamp">REVIEWED <span>3 CASE FILES</span></div><h2>三つの案件を、完走した。</h2><p>問いを立て、数字を読み、一枚で伝える。学んだ内容は成果物ライブラリに残っている。</p><div class="today-actions"><button class="button primary" data-view="library">成果物を見る</button><button class="button ghost" data-view="map">43章のAtlasへ</button><button class="button ghost" data-journey-restart>もう一度見る</button></div></section>`;
+      bindCommonEvents();
+      root.querySelector('[data-journey-restart]').addEventListener('click', () => { state.journey.activeLessonId = JOURNEY.lessons[0].id; persist(); activeView = 'journey'; render(); });
+      return;
+    }
     root.innerHTML = `
-      <section class="view-heading purpose-heading">
-        <div>
-          <p class="section-label">START WITH YOUR PURPOSE</p>
-          <h2>今日は、どんな使い方をする？</h2>
-          <p>教材の目次から入らない。今の目的に合わせて、学ぶ・使う・弱点をつぶす、の入口を選ぶ。</p>
+      <section class="home-focus">
+        <div class="home-focus-copy">
+          <p class="eyebrow">YOUR NEXT STEP</p>
+          <h2>今日は、ここだけ。</h2>
+          <p>先の43章を覚えなくて大丈夫。目の前の案件を一つ動かせば、次の道が開く。</p>
         </div>
-        <div class="header-meta"><span class="tag">1回 ${sessionLength}分</span><span class="status-pill focus">財務重点</span></div>
+        <div class="journey-progress-quiet" aria-label="Journey進捗">
+          <span>${completed} / ${JOURNEY.lessons.length} LESSONS</span>
+          <div><i style="width:${percent}%"></i></div>
+        </div>
       </section>
 
-      <section class="path-grid" aria-label="目的別の入口">
-        <article class="path-card start">
-          <div class="path-icon">◎</div>
-          <p class="eyebrow">GUIDED BEGINNER</p>
-          <h3>はじめる</h3>
-          <p>何から手をつけるか迷うとき。3分診断で、いま必要な最初の一章を決める。</p>
-          <ul><li>3分の基礎診断</li><li>今日の10分レッスン</li><li>用語をその場で確認</li></ul>
-          <button class="button primary" data-action="open-route" data-route="start">${diagnostic ? '診断結果から進める' : '3分診断を始める'} →</button>
-        </article>
-        <article class="path-card work">
-          <div class="path-icon">⌕</div>
-          <p class="eyebrow">JUST-IN-TIME WORKER</p>
-          <h3>仕事に使う</h3>
-          <p>明日の資料や会議のために。論点を検索し、次に見る数字と分析メモの型をすぐ取り出す。</p>
-          <ul><li>論点・用語で検索</li><li>次に見る数字</li><li>コピペ用の分析テンプレ</li></ul>
-          <button class="button secondary" data-action="open-route" data-route="work">実務ツールを開く →</button>
-        </article>
-        <article class="path-card improve">
-          <div class="path-icon">↻</div>
-          <p class="eyebrow">DELIBERATE IMPROVER</p>
-          <h3>弱点をつぶす</h3>
-          <p>分かったつもりを減らす。正誤、自信度、誤答タグから、次に戻るべき前提を見つける。</p>
-          <ul><li>弱点マップ</li><li>スペシャル問題</li><li>次の7日間の復習案</li></ul>
-          <button class="button ghost" data-action="open-route" data-route="weakness">弱点マップを見る →</button>
-        </article>
+      <section class="next-case-card">
+        <div class="case-file-no"><span>FILE</span><b>${String(JOURNEY.lessons.indexOf(lesson) + 1).padStart(2, '0')}</b></div>
+        <div class="case-file-body">
+          <p class="card-kicker">PHASE ${phase.no} · WEEK ${lesson.week}</p>
+          <h3>${escapeHTML(lesson.title)}</h3>
+          <p>${escapeHTML(lesson.subtitle)}</p>
+          <div class="next-step-line"><strong>STEP ${step + 1} / 6｜${stepTitles[step]}</strong><span>約${Math.max(3, Math.ceil(lesson.minutes / 6))}分</span></div>
+        </div>
+        <button class="case-next-button" data-action="open-journey-lesson" data-lesson-id="${lesson.id}" aria-label="この一歩を始める">→</button>
       </section>
 
-      <section class="purpose-dashboard">
-        <article class="today-card compact-today">
-          <p class="eyebrow">TODAY'S NEXT MOVE</p>
-          <h3>${escapeHTML(diagnostic?.label || `Chapter ${String(next.no).padStart(2, '0')}｜${next.title}`)}</h3>
-          <p>${escapeHTML(diagnostic?.message || next.outcome)}</p>
-          <div class="today-meta"><span class="tag">${diagnostic ? '10分から' : `${next.minutes}分`}</span><span class="tag">${finance.completed} / ${finance.total}章通過</span></div>
-          <div class="today-actions"><button class="button primary" data-action="open-chapter" data-chapter-id="${diagnostic?.chapterId || next.id}">最初のレッスンを開く →</button><button class="button ghost" data-action="open-practice">1問だけ解く</button></div>
-        </article>
-        <aside class="card quick-signal">
-          <p class="section-label">RIGHT NOW</p>
-          <h3>今、戻ると効くところ</h3>
-          <div class="signal-main"><b>${escapeHTML(urgent.label)}</b><span>理解度 ${urgent.score}%</span></div>
-          <div class="skill-bar large"><i style="width:${urgent.score}%"></i></div>
-          <p>${escapeHTML(urgent.next)}</p>
-          <button class="button ghost small" data-action="open-route" data-route="weakness">理由と次の一手を見る →</button>
-        </aside>
+      <section class="home-utility-grid" aria-label="別の使い方">
+        <button class="home-utility" data-view="work"><span>⌕</span><div><strong>今の仕事から探す</strong><small>論点、数字、分析メモをすぐ取り出す</small></div><b>→</b></button>
+        <button class="home-utility" data-view="weakness"><span>↻</span><div><strong>弱点を一問だけ復習</strong><small>自信ありの誤答から戻る場所を選ぶ</small></div><b>→</b></button>
+        <button class="home-utility" data-view="map"><span>⌘</span><div><strong>43章のAtlasを開く</strong><small>必要な知識を自由に調べる</small></div><b>→</b></button>
       </section>
 
-      <section class="dashboard-row" aria-label="学習状況">
-        <article class="card metric-card"><div class="metric-label">完了した章</div><div class="metric-value"><b>${state.progress.completedChapters.length}</b><span>/ ${DATA.chapters.length}章</span></div><div class="metric-footer">読了ではなく、チェックと成果物まで残した章。</div></article>
-        <article class="card metric-card"><div class="metric-label">自信ありの誤答</div><div class="metric-value"><b>${weakness.reduce((sum, item) => sum + item.highConfidenceMisses, 0)}</b><span>件</span></div><div class="metric-footer">ここがいちばん伸びしろ。復習の優先順位にする。</div></article>
-        <article class="card metric-card"><div class="metric-label">実務成果物</div><div class="metric-value"><b>${state.artifacts.filter((artifact) => artifact.status === '完成').length}</b><span>件完成</span></div><div class="metric-footer">分析メモとテンプレを、仕事へ持ち出せる形で残す。</div></article>
-        <article class="card metric-card"><div class="metric-label">次のスペシャル問題</div><div class="metric-value"><b>在庫</b><span>の増加を読む</span></div><div class="metric-footer">B/Sの数字から、確認すべき問いを三つつくる。</div></article>
-      </section>`;
+      <details class="home-record card">
+        <summary>これまでの記録</summary>
+        <div class="home-record-grid"><div><small>Journey</small><strong>${completed}/${JOURNEY.lessons.length}</strong></div><div><small>Atlas通過</small><strong>${state.progress.completedChapters.length}/${DATA.chapters.length}</strong></div><div><small>成果物</small><strong>${state.artifacts.filter((artifact) => artifact.status === '完成').length}</strong></div><div><small>演習ログ</small><strong>${state.attempts.length}</strong></div></div>
+      </details>`;
     bindCommonEvents();
+  }
+
+  function getJourneyLesson(id) {
+    return JOURNEY.lessons.find((lesson) => lesson.id === id) || JOURNEY.lessons[0];
+  }
+
+  function getCurrentJourneyLesson() {
+    const active = getJourneyLesson(state.journey.activeLessonId);
+    if (!state.journey.completedLessons.includes(active.id)) return active;
+    return JOURNEY.lessons.find((lesson) => !state.journey.completedLessons.includes(lesson.id)) || active;
+  }
+
+  function getJourneyLessonState(lessonId) {
+    if (!state.journey.lessons[lessonId]) {
+      state.journey.lessons[lessonId] = { step: 0, prediction: null, interaction: [], explanation: '', recall: {}, application: '', confidence: null };
+    }
+    return state.journey.lessons[lessonId];
+  }
+
+  function isJourneyLessonUnlocked(lesson) {
+    const index = JOURNEY.lessons.findIndex((item) => item.id === lesson.id);
+    return index === 0 || state.journey.completedLessons.includes(lesson.id) || state.journey.completedLessons.includes(JOURNEY.lessons[index - 1].id);
+  }
+
+  function journeyStepTitle(step) {
+    return ['まず、予想する', 'ケースを動かす', '自分の言葉にする', '型と専門用語につなぐ', '資料を閉じて思い出す', '小さな成果物にする'][step] || '';
+  }
+
+  function isJourneyInteractionPassed(lesson, lessonState) {
+    const selected = lessonState.interaction || [];
+    const correct = lesson.interaction.options.filter((option) => option.correct).map((option) => option.id);
+    return selected.length === correct.length && selected.every((id) => correct.includes(id));
+  }
+
+  function isJourneyRecallPassed(lesson, lessonState) {
+    return lesson.recall.every((question) => Number(lessonState.recall?.[question.id]) === question.answer);
+  }
+
+  function canAdvanceJourney(lesson, lessonState, step) {
+    if (step === 0) return Number.isInteger(lessonState.prediction);
+    if (step === 1) return isJourneyInteractionPassed(lesson, lessonState);
+    if (step === 2) return (lessonState.explanation || '').trim().length >= lesson.explanation.minLength;
+    if (step === 4) return isJourneyRecallPassed(lesson, lessonState);
+    if (step === 5) return (lessonState.application || '').trim().length >= lesson.application.minLength && Number.isInteger(lessonState.confidence);
+    return true;
+  }
+
+  function journeyTableMarkup(table) {
+    if (!table) return '';
+    return `<div class="journey-table-wrap"><table class="journey-table"><thead><tr>${table.headers.map((item) => `<th>${escapeHTML(item)}</th>`).join('')}</tr></thead><tbody>${table.rows.map((row) => `<tr>${row.map((item) => `<td>${escapeHTML(item)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderJourneyStep(lesson, lessonState, step) {
+    if (step === 0) {
+      return `<div class="journey-predict"><p class="journey-lead">正解を見る前に、いまの直感を置いてみよう。</p><h3>${escapeHTML(lesson.prediction.question)}</h3><div class="journey-choice-grid">${lesson.prediction.options.map((option, index) => `<button class="journey-choice ${lessonState.prediction === index ? 'is-selected' : ''}" data-journey-prediction="${index}">${escapeHTML(option)}</button>`).join('')}</div><p class="journey-hint">間違っても失点なし。予想と結果の差が、学びの入口になる。</p></div>`;
+    }
+    if (step === 1) {
+      const selected = lessonState.interaction || [];
+      const passed = isJourneyInteractionPassed(lesson, lessonState);
+      return `<div class="journey-interaction"><p class="journey-lead">${escapeHTML(lesson.interaction.instruction)}</p>${journeyTableMarkup(lesson.interaction.table)}<div class="journey-select-grid">${lesson.interaction.options.map((option) => `<button class="journey-select ${selected.includes(option.id) ? 'is-selected' : ''}" data-journey-interaction="${option.id}"><span>${selected.includes(option.id) ? '✓' : '○'}</span>${escapeHTML(option.label)}</button>`).join('')}</div><div class="interaction-status ${passed ? 'is-passed' : ''}">${passed ? `✓ ${escapeHTML(lesson.interaction.observation)}` : `${selected.length} / ${lesson.interaction.required} 選択中`}</div></div>`;
+    }
+    if (step === 2) {
+      const predictedCorrect = lessonState.prediction === lesson.prediction.answer;
+      return `<div class="journey-explain"><div class="discovery-card"><span>${predictedCorrect ? '予想どおり' : 'ここが発見'}</span><p>${escapeHTML(lesson.prediction.feedback)}</p></div><label for="journeyExplanation">${escapeHTML(lesson.explanation.prompt)}</label><textarea id="journeyExplanation" rows="5" placeholder="${escapeHTML(lesson.explanation.placeholder)}">${escapeHTML(lessonState.explanation)}</textarea><p class="journey-hint" id="journeyExplanationHint">${(lessonState.explanation || '').trim().length} / ${lesson.explanation.minLength}文字以上</p></div>`;
+    }
+    if (step === 3) {
+      const column = lesson.formalize.column;
+      return `<div class="journey-formalize"><p class="bridge-copy">${escapeHTML(lesson.formalize.bridge)}</p><div class="textbook-note"><span>教科書の言葉</span><p>${escapeHTML(lesson.formalize.textbook)}</p></div><div class="framework-note"><span>基本の型</span><strong>${escapeHTML(lesson.formalize.framework)}</strong></div><div class="worked-example"><span>例題</span><p>${escapeHTML(lesson.formalize.workedExample)}</p></div><details class="mistake-note"><summary>よくある失敗を確認する</summary><p>${escapeHTML(lesson.formalize.commonMistake)}</p></details><aside class="interlude-column"><p>${escapeHTML(column.label)}</p><h4>${escapeHTML(column.title)}</h4><div>${escapeHTML(column.body)}</div><strong>${escapeHTML(column.takeaway)}</strong></aside></div>`;
+    }
+    if (step === 4) {
+      return `<div class="journey-recall"><p class="journey-lead">本文を見ずに、2問とも答えよう。何度でもやり直せる。</p>${lesson.recall.map((question, questionIndex) => { const current = lessonState.recall?.[question.id]; return `<section class="recall-question"><strong>Q${questionIndex + 1}. ${escapeHTML(question.question)}</strong><div>${question.options.map((option, optionIndex) => `<button class="recall-option ${Number(current) === optionIndex ? (optionIndex === question.answer ? 'is-correct' : 'is-wrong') : ''}" data-recall-id="${question.id}" data-recall-answer="${optionIndex}">${escapeHTML(option)}</button>`).join('')}</div></section>`; }).join('')}<p class="recall-status">${isJourneyRecallPassed(lesson, lessonState) ? '✓ 2問とも思い出せた。成果物へ進もう。' : '2問とも正解すると次へ進める。'}</p></div>`;
+    }
+    const done = state.journey.completedLessons.includes(lesson.id);
+    return `<div class="journey-application"><p class="journey-lead">最後は、知識を仕事へ持ち出せる形にする。</p><div class="application-brief"><span>今回つくるもの</span><h3>${escapeHTML(lesson.application.title)}</h3><p>${escapeHTML(lesson.application.prompt)}</p></div><textarea id="journeyApplication" rows="7" placeholder="${escapeHTML(lesson.application.placeholder)}">${escapeHTML(lessonState.application)}</textarea><p class="journey-hint" id="journeyApplicationHint">${(lessonState.application || '').trim().length} / ${lesson.application.minLength}文字以上</p><div class="journey-confidence"><strong>今の自信</strong><span>実務でも説明できそう？</span><div>${[1,2,3,4,5].map((number) => `<button class="${lessonState.confidence === number ? 'is-selected' : ''}" data-journey-confidence="${number}">${number}</button>`).join('')}</div></div>${done ? '<div class="review-stamp">REVIEWED <span>このレッスンは完了済み</span></div>' : ''}</div>`;
+  }
+
+  function renderJourney() {
+    const lesson = getJourneyLesson(state.journey.activeLessonId);
+    const lessonState = getJourneyLessonState(lesson.id);
+    const step = Math.min(lessonState.step || 0, 5);
+    const phase = JOURNEY.phases.find((item) => item.id === lesson.phaseId);
+    const done = state.journey.completedLessons.includes(lesson.id);
+    setBreadcrumb('Journey', `Phase ${phase.no}`, lesson.title);
+    root.innerHTML = `<section class="journey-layout">
+      <aside class="journey-map card">
+        <p class="sidebar-label">YOUR JOURNEY</p><h2>案件を一つずつ。</h2><p>開いた道だけ、順番に進む。</p>
+        <ol>${JOURNEY.lessons.map((item, index) => { const unlocked = isJourneyLessonUnlocked(item); const completed = state.journey.completedLessons.includes(item.id); return `<li><button class="journey-map-item ${item.id === lesson.id ? 'is-active' : ''} ${completed ? 'is-done' : ''}" data-journey-map="${item.id}" ${unlocked ? '' : 'disabled'}><span>${completed ? '✓' : unlocked ? String(index + 1).padStart(2, '0') : '—'}</span><div><strong>${escapeHTML(item.title)}</strong><small>Phase ${JOURNEY.phases.find((p) => p.id === item.phaseId).no} · ${item.minutes}分</small></div></button></li>`; }).join('')}</ol>
+        <button class="button ghost small journey-atlas-link" data-view="map">43章のAtlasを見る</button>
+      </aside>
+      <main class="journey-main">
+        <header class="journey-lesson-head"><div><p class="card-kicker">PHASE ${phase.no} · WEEK ${lesson.week} · ${escapeHTML(lesson.scene.label)}</p><h1>${escapeHTML(lesson.title)}</h1><p>${escapeHTML(lesson.subtitle)}</p></div><span>${lesson.minutes}分 · ${lesson.xp}XP</span></header>
+        <section class="case-brief"><div><span>${escapeHTML(lesson.scene.role)}</span><p>${escapeHTML(lesson.scene.brief)}</p></div><small>${escapeHTML(lesson.scene.stakes)}</small></section>
+        <article class="journey-step-card">
+          <div class="journey-step-meta"><span>STEP ${step + 1} / 6</span><div><i style="width:${((step + 1) / 6) * 100}%"></i></div></div>
+          <div class="journey-step-title"><p>${escapeHTML(journeyStepTitle(step))}</p><div>${lesson.concepts.slice(0, 4).map((concept) => `<span>${escapeHTML(concept)}</span>`).join('')}</div></div>
+          <div class="journey-step-content">${renderJourneyStep(lesson, lessonState, step)}</div>
+          <footer class="journey-step-actions"><button class="button ghost" data-journey-prev ${step === 0 ? 'disabled' : ''}>← もどる</button><div class="step-dots">${Array.from({ length: 6 }, (_, index) => `<span class="${index === step ? 'is-active' : index < step ? 'is-past' : ''}"></span>`).join('')}</div>${step === 5 ? `<button class="button primary" data-journey-complete ${done || canAdvanceJourney(lesson, lessonState, step) ? '' : 'disabled'}>${done ? '完了済み ✓' : '成果物を保存して完了'}</button>` : `<button class="button primary" data-journey-next ${canAdvanceJourney(lesson, lessonState, step) ? '' : 'disabled'}>${['ケースへ', '言葉にする', '型を学ぶ', '思い出す', '成果物へ'][step]} →</button>`}</footer>
+        </article>
+        <details class="journey-sources"><summary>参照資料・一次情報</summary>${lesson.sources.length ? `<ul>${lesson.sources.map((source) => `<li><a href="${escapeHTML(source.url)}" target="_blank" rel="noreferrer">${escapeHTML(source.title)}</a></li>`).join('')}</ul>` : '<p>このレッスンは、架空ケースと一般的な資料作成原則で構成している。</p>'}</details>
+      </main>
+    </section>`;
+    bindCommonEvents();
+    bindJourneyEvents(lesson, lessonState, step);
+  }
+
+  function bindJourneyEvents(lesson, lessonState, step) {
+    root.querySelectorAll('[data-journey-map]').forEach((button) => button.addEventListener('click', () => openJourneyLesson(button.dataset.journeyMap)));
+    root.querySelectorAll('[data-journey-prediction]').forEach((button) => button.addEventListener('click', () => { lessonState.prediction = Number(button.dataset.journeyPrediction); persist(); renderJourney(); }));
+    root.querySelectorAll('[data-journey-interaction]').forEach((button) => button.addEventListener('click', () => {
+      const id = button.dataset.journeyInteraction;
+      const selected = new Set(lessonState.interaction || []);
+      if (selected.has(id)) selected.delete(id); else if (selected.size < lesson.interaction.required) selected.add(id); else { showToast(`${lesson.interaction.required}つまで選べる。`, 'error'); return; }
+      lessonState.interaction = [...selected]; persist(); renderJourney();
+    }));
+    root.querySelectorAll('[data-recall-id]').forEach((button) => button.addEventListener('click', () => { lessonState.recall[button.dataset.recallId] = Number(button.dataset.recallAnswer); persist(); renderJourney(); }));
+    root.querySelectorAll('[data-journey-confidence]').forEach((button) => button.addEventListener('click', () => { lessonState.confidence = Number(button.dataset.journeyConfidence); persist(); renderJourney(); }));
+    root.querySelector('[data-journey-prev]')?.addEventListener('click', () => { lessonState.step = Math.max(0, step - 1); persist(); renderJourney(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    root.querySelector('[data-journey-next]')?.addEventListener('click', () => { if (!canAdvanceJourney(lesson, lessonState, step)) return; lessonState.step = Math.min(5, step + 1); persist(); renderJourney(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    root.querySelector('[data-journey-complete]')?.addEventListener('click', () => completeJourneyLesson(lesson, lessonState));
+    const explanation = document.getElementById('journeyExplanation');
+    explanation?.addEventListener('input', () => { lessonState.explanation = explanation.value; persist(); const ready = explanation.value.trim().length >= lesson.explanation.minLength; root.querySelector('[data-journey-next]').disabled = !ready; document.getElementById('journeyExplanationHint').textContent = ready ? '✓ 自分の言葉にできた' : `${explanation.value.trim().length} / ${lesson.explanation.minLength}文字以上`; });
+    const application = document.getElementById('journeyApplication');
+    application?.addEventListener('input', () => { lessonState.application = application.value; persist(); const ready = application.value.trim().length >= lesson.application.minLength && Number.isInteger(lessonState.confidence); root.querySelector('[data-journey-complete]').disabled = !ready; document.getElementById('journeyApplicationHint').textContent = application.value.trim().length >= lesson.application.minLength ? '✓ 最小版ができた' : `${application.value.trim().length} / ${lesson.application.minLength}文字以上`; });
+  }
+
+  function openJourneyLesson(lessonId) {
+    const lesson = getJourneyLesson(lessonId);
+    if (!isJourneyLessonUnlocked(lesson)) { showToast('一つ前の案件を終えると、この道が開く。', 'error'); return; }
+    state.journey.activeLessonId = lesson.id;
+    getJourneyLessonState(lesson.id);
+    persist(); activeView = 'journey'; render();
+  }
+
+  function completeJourneyLesson(lesson, lessonState) {
+    if (state.journey.completedLessons.includes(lesson.id)) { showToast('このレッスンは完了済み。'); return; }
+    if (!canAdvanceJourney(lesson, lessonState, 5)) { showToast('成果物と自信度を残すと完了できる。', 'error'); return; }
+    state.journey.completedLessons.push(lesson.id);
+    if (!state.progress.completedChapters.includes(lesson.chapterId)) state.progress.completedChapters.push(lesson.chapterId);
+    const artifactId = `journey-${lesson.id}`;
+    if (!state.artifacts.some((artifact) => artifact.id === artifactId)) {
+      state.artifacts.unshift({ id: artifactId, type: lesson.application.artifactType, icon: '✓', title: lesson.application.artifactTitle, description: lessonState.application, chapter: `Chapter ${String(getChapter(lesson.chapterId).no).padStart(2, '0')}`, status: '完成', date: '今日' });
+    }
+    const currentIndex = JOURNEY.lessons.findIndex((item) => item.id === lesson.id);
+    const next = JOURNEY.lessons[currentIndex + 1];
+    if (next) { state.journey.activeLessonId = next.id; getJourneyLessonState(next.id); }
+    persist(); showToast(`${lesson.title}を完了。成果物へ保存した。`);
+    if (next) renderJourney(); else { activeView = 'home'; render(); }
   }
 
   function renderDiagnostic() {
@@ -904,6 +1037,7 @@
 
   function bindCommonEvents() {
     root.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; render(); }));
+    root.querySelectorAll('[data-action="open-journey-lesson"]').forEach((button) => button.addEventListener('click', () => openJourneyLesson(button.dataset.lessonId)));
     root.querySelectorAll('[data-action="open-chapter"]').forEach((button) => button.addEventListener('click', () => openChapter(button.dataset.chapterId)));
     root.querySelectorAll('[data-action="open-practice"]').forEach((button) => button.addEventListener('click', () => { activeView = 'practice'; render(); }));
     root.querySelectorAll('[data-action="open-route"]').forEach((button) => button.addEventListener('click', () => {
@@ -940,6 +1074,11 @@
   }
 
   function openChapter(chapterId) {
+    const journeyLesson = JOURNEY.lessons.find((lesson) => lesson.chapterId === chapterId);
+    if (journeyLesson && isJourneyLessonUnlocked(journeyLesson)) {
+      openJourneyLesson(journeyLesson.id);
+      return;
+    }
     state.progress.selectedChapter = chapterId;
     state.progress.lastViewedChapter = chapterId;
     persist(); activeView = 'lesson'; render();

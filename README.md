@@ -8,6 +8,10 @@
 
 ## この初期版でできること
 
+- ホームで「今日の一歩」だけを確認し、Guided Journeyを再開
+- 予想 → ケース操作 → 言語化 → 型 → 想起 → 成果物、の6ステップ学習
+- Chapter 3 / 9 / 32のパイロットレッスンと段階開放
+- Journeyで作った成果物を成果物ライブラリへ自動保存
 - ホーム画面で「今日やる一手」と、財務トラックの現在地を確認
 - 全43章を樹形図・Gate形式で閲覧
 - 財務中心の教科書画面（Chapter 7 / 8 / 9 / 12 / 13 / 15 / 18 / 21は詳細コンテンツ入り）
@@ -70,6 +74,7 @@ consulting-fundamentals-atlas/
 ├─ index.html                    # アプリの土台
 ├─ styles.css                    # UI / レスポンシブ対応
 ├─ data.js                       # 章・問題・教材のデータ
+├─ journey-data.js               # Guided Journeyの教材・ケースデータ
 ├─ app.js                        # 画面描画、進捗、保存、出力のロジック
 ├─ site.webmanifest              # iPhoneホーム画面向け設定
 ├─ .nojekyll                     # GitHub Pages用
@@ -81,7 +86,9 @@ consulting-fundamentals-atlas/
 └─ docs/
    ├─ blueprint.md                # 教科書 × 学習アプリの設計書
    ├─ learning-roadmap.md         # 学習ロードマップ詳細版
-   └─ content-authoring.md        # 教材を増やす時の書き方
+   ├─ content-authoring.md        # 教材を増やす時の書き方
+   ├─ learning-loop.md            # 6ステップ学習の仕様
+   └─ implementation-plan.md      # Journey拡張の実装順
 ```
 
 ## 教材を増やす方法
