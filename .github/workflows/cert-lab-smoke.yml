@@ -1,0 +1,22 @@
+name: Cert Lab smoke test
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cert-lab.js'
+      - 'cert-lab-data.js'
+      - 'tests/cert-lab-smoke.mjs'
+      - '.github/workflows/cert-lab-smoke.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run content and interaction smoke tests
+        run: node tests/cert-lab-smoke.mjs
