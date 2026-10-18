@@ -8,7 +8,7 @@
   const appShell = document.getElementById('appShell');
   const breadcrumbs = document.getElementById('breadcrumbs');
   const toastRegion = document.getElementById('toastRegion');
-  let activeView = 'home';
+  let activeView = window.location.hash === '#/cert-lab' ? 'cert-lab' : 'home';
   let activeQuestionId = 'finance-pl-001';
   let activeWorkspaceTab = 'pl';
   let activeAnnotation = 'observation';
@@ -390,11 +390,18 @@
     return `<div class="feedback-next"><p class="section-label">NEXT STEP</p><strong>次はここへ戻る</strong><p>${escapeHTML(next.reason)}</p><div class="today-actions"><button class="button ghost small" data-feedback-open-chapter="${next.chapterId}">${escapeHTML(next.title)}を開く</button><button class="button secondary small" data-feedback-next-question="${question.id}">同じ弱点を別の問題で確認</button></div></div>`;
   }
 
+  function renderCertLab() {
+    setBreadcrumb('資格・実務ラボ', '学習と資格の判断');
+    window.CERT_LAB.mount(root, state, { persist, toast: showToast, navigate: (view) => { activeView = view; render(); } });
+  }
+
   function render() {
+    root.onclick = null;
+    root.onchange = null;
     stopTimer();
     activeNav(activeView);
     appShell.classList.remove('nav-open');
-    const renderers = { home: renderHome, diagnostic: renderDiagnostic, work: renderWork, weakness: renderWeakness, map: renderMap, lesson: renderLesson, practice: renderPractice, workspace: renderWorkspace, library: renderLibrary, review: renderReview, settings: renderSettings };
+    const renderers = { home: renderHome, 'cert-lab': renderCertLab, diagnostic: renderDiagnostic, work: renderWork, weakness: renderWeakness, map: renderMap, lesson: renderLesson, practice: renderPractice, workspace: renderWorkspace, library: renderLibrary, review: renderReview, settings: renderSettings };
     (renderers[activeView] || renderHome)();
   }
 
@@ -415,6 +422,8 @@
         </div>
         <div class="header-meta"><span class="tag">1回 ${sessionLength}分</span><span class="status-pill focus">財務重点</span></div>
       </section>
+
+      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・42問の独自クイズ。間違えた問題の復習と、12週間の学習計画を一画面から。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
 
       <section class="path-grid" aria-label="目的別の入口">
         <article class="path-card start">
@@ -903,7 +912,7 @@
   }
 
   function bindCommonEvents() {
-    root.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; render(); }));
+    root.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; if (activeView === 'cert-lab') history.replaceState(null, '', '#/cert-lab'); render(); }));
     root.querySelectorAll('[data-action="open-chapter"]').forEach((button) => button.addEventListener('click', () => openChapter(button.dataset.chapterId)));
     root.querySelectorAll('[data-action="open-practice"]').forEach((button) => button.addEventListener('click', () => { activeView = 'practice'; render(); }));
     root.querySelectorAll('[data-action="open-route"]').forEach((button) => button.addEventListener('click', () => {
@@ -1081,7 +1090,7 @@
   }
 
   function setupGlobalEvents() {
-    document.querySelectorAll('.nav-item[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; render(); }));
+    document.querySelectorAll('.nav-item[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; if (activeView === 'cert-lab') history.replaceState(null, '', '#/cert-lab'); else if (location.hash === '#/cert-lab') history.replaceState(null, '', location.pathname + location.search); render(); }));
     document.getElementById('menuButton').addEventListener('click', () => {
       const open = appShell.classList.toggle('nav-open');
       document.getElementById('menuButton').setAttribute('aria-expanded', String(open));
