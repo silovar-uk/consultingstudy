@@ -180,7 +180,8 @@
         }
         case 'copy-template':{
           const value=D.moduleById(s.moduleId).template;
-          navigator.clipboard?.writeText(value).then(()=>toast('記入の型をコピーしました。')).catch(()=>fallbackCopy(value));
+          if(navigator.clipboard?.writeText) navigator.clipboard.writeText(value).then(()=>toast('記入の型をコピーしました。')).catch(()=>fallbackCopy(value));
+          else fallbackCopy(value);
           return;
         }
         case 'download-note':{
