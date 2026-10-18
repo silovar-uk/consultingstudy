@@ -129,3 +129,6 @@
 :root[data-theme="dark"] .cert-lab{--cl-accent:#44d2bd}
 :root[data-theme="dark"] .cert-lab a{color:#79e6d4}
 :root[data-theme="dark"] .cert-lab .cl-eyebrow{color:#58d8c4}
+
+/* 追加したナビ項目が小さなiPhoneの高さを超える場合も全項目へ到達可能にする。 */
+.sidebar .main-nav{overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
