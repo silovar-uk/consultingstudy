@@ -8,7 +8,7 @@
   const dayText = date => new Date(date).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
   const getStats=(s,id)=>{
     const qs=trackQs(id), recent=qs.map(q=>(s.attempts||[]).filter(a=>a.id===q.id).at(-1)).filter(Boolean);
-    const correct=recent.filter(a=>a.correct).length;
+    const correct=recent.filter(a=>a.correct&&a.confidence!=='unsure').length;
     const now=Date.now();
     const due=recent.filter(a=>!a.nextAt || Date.parse(a.nextAt)<=now);
     return {total:qs.length,answered:recent.length,correct,due:due.length,remaining:qs.length-recent.length};
@@ -44,15 +44,21 @@
     s.diagnostic=s.diagnostic&&typeof s.diagnostic==='object'?s.diagnostic:{};
     s.mode=s.mode||'new';
     s.certDecision=s.certDecision||'learn';
+    s.drafts=s.drafts&&typeof s.drafts==='object'?s.drafts:{};
+    s.lastModuleByTrack=s.lastModuleByTrack&&typeof s.lastModuleByTrack==='object'?s.lastModuleByTrack:{};
     const track=D.trackById(s.trackId);
     const active=D.moduleById(s.moduleId);
     const stats=getStats(s,track.id);
     const moduleQuizzes=D.questionsFor(active.id);
     const save=()=>api.persist?.();
     const nav= api.navigate||(()=>{});
+    const atlasChapters=api.atlasChapters||[];
+    const openAtlas=api.openChapter||(()=>{});
     const toast=api.toast||(()=>{});
     const act=(label,action,cls='')=>`<button type="button" class="cl-button ${cls}" data-cl-action="${action}">${esc(label)}</button>`;
     const quote=(text)=>esc(text).replace(/\n/g,'<br>');
+    const atlasChapter=id=>atlasChapters.find(c=>c.id===id);
+    const rememberDraft=()=>{const el=root.querySelector?.('#clWorkText');if(el)s.drafts[s.moduleId]=el.value;};
     const source=ref=>`<a href="${esc(ref.url)}" target="_blank" rel="noopener noreferrer">${esc(ref.name)} ↗</a>`;
     const lessonDone=id=>s.completed.includes(id);
     const recentAttempt=id=>s.attempts.filter(a=>a.id===id).at(-1);
@@ -67,21 +73,34 @@
       return (mode==='review'?due[0]:mode==='new'?unseen[0]:(due[0]||unseen[0]||all[0]))||null;
     };
     const getPercent = () => D.trackById(s.trackId).modules.filter(m=>lessonDone(m.id)).length / D.trackById(s.trackId).modules.length * 100;
-    const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['work','成果物'],['strategy','資格の判断']];
+    function recommendNext(){
+ const tr=D.trackById(s.trackId);
+ const due=dueQuestions().sort((a,b)=>String(recentAttempt(a.id)?.nextAt||'').localeCompare(String(recentAttempt(b.id)?.nextAt||'')));
+ if(due.length){const q=due[0];return {kind:'review',moduleId:q.moduleId,questionId:q.id,title:'前に解いた問いを、もう一度考える',detail:'復習対象の問題が'+due.length+'問あります。正解した記憶ではなく理由を確認します。',button:'復習の1問を解く'};}
+ const modules=tr.modules;
+ const selected=modules.find(m=>!lessonDone(m.id))||modules.find(m=>!s.notes[m.id]?.text?.trim())||modules[0];
+ const qs=D.questionsFor(selected.id);
+ const unseen=qs.filter(q=>!recentAttempt(q.id));
+ if(!lessonDone(selected.id))return {kind:'lesson',moduleId:selected.id,title:'まず「'+selected.title+'」を理解する',detail:'重要概念と具体例を確認し、読了をチェックします。',button:'この講義を開く'};
+ if(s.certDecision==='practice'&&!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'学んだ知識を成果物に変える',detail:'実務を優先する方針に沿って「'+selected.title+'」のメモを作成します。',button:'実務メモを作る'};
+ if(unseen.length)return {kind:'quiz',moduleId:selected.id,questionId:unseen[0].id,title:'知識を別の場面で試す',detail:'「'+selected.title+'」の未回答問題が'+unseen.length+'問あります。',button:'次の1問を解く'};
+ if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
+ return {kind:'work',moduleId:selected.id,title:'一つ前の仕事を、よりよく説明する',detail:'この領域の講義と問題は一巡しました。以前の成果物を確認し、改善してください。',button:'成果物を見直す'};
+}
+    const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['work','成果物'],['scope','範囲と対応'],['strategy','資格の判断']];
     function render(){
       const tr=D.trackById(s.trackId), info=getStats(s,tr.id);
       const header=`<section class="cl-heading"><div><p class="cl-eyebrow">CONSULTING STUDY / SKILL × CERTIFICATION</p><h2>資格・実務ラボ</h2><p>資格に受かる前に、仕事で使えるようになる。読む → 解く → つくる → 復習する。</p></div><div class="cl-select-wrap"><label for="clTrack">学ぶ領域</label><select id="clTrack">${D.tracks.map(t=>`<option value="${t.id}" ${s.trackId===t.id?'selected':''}>${esc(t.short)}｜${esc(t.name)}</option>`).join('')}</select></div></section>
       <div class="cl-switcher" role="navigation" aria-label="資格学習メニュー">${tabs.map(([id,label])=>`<button type="button" class="cl-tab ${s.tab===id?'active':''}" data-cl-tab="${id}" ${s.tab===id?'aria-current="page"':''}>${label}${id==='quiz'&&info.due?` <span class="cl-count">${info.due}</span>`:''}</button>`).join('')}</div>`;
-      root.innerHTML=`<div class="cert-lab">${header}<div id="cl-panel" class="cl-panel">${s.tab==='today'?today(tr,info):s.tab==='curriculum'?curriculum(tr):s.tab==='quiz'?quiz(tr):s.tab==='work'?work(tr):strategy(tr)}</div><footer class="cl-footnote">問題とケースは本サイト作成の独自教材です。公式の模擬試験・合格判定ではありません。学習ログはこのブラウザに保存され、既存の「設定・データ」からJSONでバックアップできます。最終更新：2026年10月19日。</footer></div>`;
+      root.innerHTML=`<div class="cert-lab">${header}<div id="cl-panel" class="cl-panel">${s.tab==='today'?today(tr,info):s.tab==='curriculum'?curriculum(tr):s.tab==='quiz'?quiz(tr):s.tab==='work'?work(tr):s.tab==='scope'?scope(tr):strategy(tr)}</div><footer class="cl-footnote">問題とケースは本サイト作成の独自教材です。公式の模擬試験・合格判定ではありません。学習ログはこのブラウザに保存され、既存の「設定・データ」からJSONでバックアップできます。最終更新：2026年10月19日。</footer></div>`;
       root.onclick=onClick;
       root.onchange=onChange;
+      root.oninput=onInput;
     }
     function today(tr,info){
-      const nextModule=tr.modules.find(m=>!lessonDone(m.id))||tr.modules[0];
-      const nextQ=pickNext('mixed');
-      const due=dueQuestions();
+      const plan=recommendNext();
       const completedWeeks=s.weeklyDone.filter(x=>x.startsWith(tr.id+':')).length;
-      return `<section class="cl-hero"><div><p class="cl-eyebrow">TODAY'S BEST NEXT STEP</p><h3>${due.length?'忘れかけた知識から取り戻す。':'次の一歩を、仕事につなげる。'}</h3><p>${due.length?`${due.length}問の復習対象があります。先に解き直して理解を確かめます。`:`${esc(nextModule.title)}を学び、短い実務演習へ進みましょう。`}</p><div class="cl-actions">${act(due.length?'復習を始める':'今日の講義を開く',due.length?'due':'next-lesson','primary')}${act('7問の現在地診断','diagnostic','ghost')}</div></div><div class="cl-hero-mark"><span>${Math.round(getPercent())}%</span><small>単元の学習チェック</small></div></section>
+      return `<section class="cl-hero"><div><p class="cl-eyebrow">NEXT REASON / 1 ACTION</p><h3>${esc(plan.title)}</h3><p>${esc(plan.detail)}</p><div class="cl-actions">${act(plan.button,'next-action','primary')}${act('7問の現在地診断','diagnostic','ghost')}</div></div><div class="cl-hero-mark"><span>${Math.round(getPercent())}%</span><small>読了チェックの割合</small></div></section>
       <div class="cl-metrics"><div><strong>${tr.modules.length}</strong><small>学習単元</small></div><div><strong>${info.answered}/${info.total}</strong><small>回答済み問題</small></div><div><strong>${info.due}</strong><small>復習対象</small></div><div><strong>${completedWeeks}/12</strong><small>週間タスク</small></div></div>
       <section class="cl-card"><div class="cl-card-header"><div><p class="cl-eyebrow">YOUR TRACK</p><h3>${esc(tr.exam)}の実務学習</h3></div><span class="cl-chip">${esc(tr.for)}</span></div><p>${esc(tr.summary)}</p><p class="cl-warning">確認事項：${esc(tr.caveat)}</p><p class="cl-source">一次情報：${source(D.references[tr.id])}</p></section>
       <section class="cl-card"><div class="cl-card-header"><div><p class="cl-eyebrow">THE 12-WEEK PLAN</p><h3>週ごとに一つ、成果を残す</h3></div><span class="cl-chip">週2〜3時間を想定した提案</span></div><p class="cl-muted">受験日までの合格計画ではなく、実務の能力を見極めるための12週間。自分のペースでチェックできます。</p><div class="cl-week-grid">${Array.from({length:12},(_,i)=>{let item=weekly(tr,i),key=tr.id+':'+i,done=s.weeklyDone.includes(key);return `<button type="button" class="cl-week ${done?'done':''}" data-cl-week="${key}" aria-pressed="${done}"><span class="cl-week-num">W${pad(i+1)} ${done?'✓':''}</span><strong>${esc(item[0])}</strong><span>${esc(item[1])}</span></button>`;}).join('')}</div></section>
@@ -89,7 +108,7 @@
     }
     function curriculum(tr){
       const m=D.moduleById(s.moduleId),qs=D.questionsFor(m.id),note=Boolean(s.notes[m.id]?.text?.trim());
-      return `<div class="cl-two-column"><aside class="cl-module-list" aria-label="単元一覧"><h3>学習単元</h3>${tr.modules.map((x,i)=>`<button type="button" class="cl-module-item ${s.moduleId===x.id?'selected':''}" data-cl-module="${x.id}"><span class="cl-module-index">${pad(i+1)}</span><span><strong>${esc(x.title)}</strong><small>${x.minutes}分・独自問題2問</small></span><span aria-hidden="true">${lessonDone(x.id)?'✓':'›'}</span></button>`).join('')}</aside><article class="cl-card cl-lesson"><p class="cl-eyebrow">LESSON / ${esc(tr.short)}</p><h3>${esc(m.title)}</h3><p class="cl-lead">${esc(m.why)}</p><div class="cl-example"><strong>具体例</strong><p>${esc(m.example)}</p></div><h4>重要概念を3つだけ押さえる</h4><dl class="cl-concepts">${m.concepts.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><div class="cl-case"><p class="cl-eyebrow">PRACTICAL TRANSFER</p><h4>仕事の形にする</h4><p>${esc(m.task)}</p><div class="cl-rubrics">${m.checks.map(x=>`<span>□ ${esc(x)}</span>`).join('')}</div></div><p class="cl-source">出題範囲の参照：${source(m.source)}</p><div class="cl-actions">${act('この単元のクイズを解く','module-quiz','primary')}${act(note?'保存済みの成果物を開く':'成果物をつくる','module-work','ghost')}${tr.id==='bookkeeping'?act('財務ワークスペースで試す','existing-workspace','ghost'):''}${act(lessonDone(m.id)?'学習済み ✓':'読了チェックを付ける','complete','secondary')}</div><p class="cl-muted">このチェックは読了の自己申告です。試験合格・実務能力の認定ではありません。</p><div class="cl-mini-list"><strong>この単元の問題</strong>${qs.map(q=>`<button type="button" data-cl-question="${q.id}">${esc(q.stem)} <span>→</span></button>`).join('')}</div></article></div>`;
+      return `<div class="cl-two-column"><aside class="cl-module-list" aria-label="単元一覧"><h3>学習単元</h3>${tr.modules.map((x,i)=>`<button type="button" class="cl-module-item ${s.moduleId===x.id?'selected':''}" data-cl-module="${x.id}"><span class="cl-module-index">${pad(i+1)}</span><span><strong>${esc(x.title)}</strong><small>${x.minutes}分・独自問題${D.questionsFor(x.id).length}問</small></span><span aria-hidden="true">${lessonDone(x.id)?'✓':'›'}</span></button>`).join('')}</aside><article class="cl-card cl-lesson"><p class="cl-eyebrow">LESSON / ${esc(tr.short)}</p><h3>${esc(m.title)}</h3><p class="cl-lead">${esc(m.why)}</p><div class="cl-example"><strong>具体例</strong><p>${esc(m.example)}</p></div><h4>重要概念を3つだけ押さえる</h4><dl class="cl-concepts">${m.concepts.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><div class="cl-case"><p class="cl-eyebrow">PRACTICAL TRANSFER</p><h4>仕事の形にする</h4><p>${esc(m.task)}</p><div class="cl-rubrics">${m.checks.map(x=>`<span>□ ${esc(x)}</span>`).join('')}</div></div>${D.crosswalkFor(m.id)?`<section class="cl-related"><p class="cl-eyebrow">EXISTING ATLAS / DUPLICATION AUDIT</p><h4>既存43章との対応</h4><p><strong>${esc(D.crosswalkFor(m.id).relation)}：</strong>${esc(D.crosswalkFor(m.id).note)}</p><div class="cl-related-links">${D.crosswalkFor(m.id).atlasChapters.map(id=>`<button type="button" data-cl-chapter="${id}">${esc(atlasChapter(id)?.title||id)} →</button>`).join('')}</div><p class="cl-muted">編集上の対応関係です。公式試験範囲の網羅を意味しません。</p></section>`:''}<p class="cl-source">出題範囲の参照：${source(m.source)}</p><div class="cl-actions">${act('この単元のクイズを解く','module-quiz','primary')}${act(note?'保存済みの成果物を開く':'成果物をつくる','module-work','ghost')}${tr.id==='bookkeeping'?act('財務ワークスペースで試す','existing-workspace','ghost'):''}${act(lessonDone(m.id)?'学習済み ✓':'読了チェックを付ける','complete','secondary')}</div><p class="cl-muted">このチェックは読了の自己申告です。試験合格・実務能力の認定ではありません。</p><div class="cl-mini-list"><strong>この単元の問題</strong>${qs.map(q=>`<button type="button" data-cl-question="${q.id}">${esc(q.stem)} <span>→</span></button>`).join('')}</div></article></div>`;
     }
     function quiz(tr){
       if(s.mode==='diagnostic')return diagnostic();
@@ -104,34 +123,49 @@
       if(!q)return `<section class="cl-empty"><h3>${s.mode==='review'?'いま期限の来た復習はありません':'未回答の問題はありません'}</h3><p>復習は正答・自信度をもとに、1・3・7・14日後を目安に提示します。実際の試験成績を予測するものではありません。</p><div class="cl-actions">${act('すべての問題から解く','all-quiz','primary')}${act('教材へ戻る','curriculum','ghost')}</div></section>`;
       const revealed=s.revealId===q.id;
       const last=recentAttempt(q.id);
-      return `<div class="cl-quiz-layout"><section class="cl-card cl-quiz-card"><div class="cl-card-header"><div><p class="cl-eyebrow">ORIGINAL PRACTICE QUESTION</p><h3>理由まで理解するクイズ</h3></div><span class="cl-chip">${esc(D.moduleById(q.moduleId).title)}</span></div><div class="cl-modes">${modes.map(([id,title])=>`<button type="button" class="${s.mode===id?'active':''}" data-cl-mode="${id}">${title}</button>`).join('')}${act('7問診断','diagnostic','ghost')}</div><p class="cl-question">${esc(q.stem)}</p><fieldset class="cl-options" ${revealed?'disabled':''}><legend class="sr-only">回答を選択</legend>${q.choices.map((c,i)=>`<button type="button" class="cl-option ${revealed?(i===q.answer?'correct':s.choice===i?'wrong':''):''}" data-cl-choice="${i}" ${revealed?'disabled':''}><span>${'ABCD'[i]}</span>${esc(c)}</button>`).join('')}</fieldset>${revealed?`<div class="cl-feedback" role="status"><strong>${s.choice===q.answer?'正解。理由まで言えるか確認しよう。':'ここは復習しよう。'}</strong><p>${esc(q.why)}</p><p class="cl-muted">${esc(q.trap)}</p><p class="cl-source">関連資料：${source(D.moduleById(q.moduleId).source)}</p>${last?`<small>次の復習：${dayText(last.nextAt)}</small>`:''}<div class="cl-actions">${act('次の問題','next-question','primary')}${act('解説を教材で確認','back-lesson','ghost')}</div></div>`:`<p class="cl-muted">選択肢を押すと採点と理由が表示されます。独自問題であり、公式過去問ではありません。</p>`}</section><aside class="cl-card cl-side"><p class="cl-eyebrow">RECALL SYSTEM</p><h3>間違えた問題が次に出る</h3><p>誤答は翌日以降、正答は3日・7日・14日後を目安に再表示。回答履歴を端末内に記録します。</p><p class="cl-muted">予定は固定間隔による学習補助であり、記憶定着を保証するものではありません。</p><div class="cl-mini-stats"><span>解答した問題 <b>${getStats(s,tr.id).answered}</b></span><span>最新回答が正解 <b>${getStats(s,tr.id).correct}</b></span><span>復習対象 <b>${getStats(s,tr.id).due}</b></span></div></aside></div>`;
+      return `<div class="cl-quiz-layout"><section class="cl-card cl-quiz-card"><div class="cl-card-header"><div><p class="cl-eyebrow">ORIGINAL PRACTICE QUESTION</p><h3>理由まで理解するクイズ</h3></div><span class="cl-chip">${esc(D.moduleById(q.moduleId).title)}</span></div><div class="cl-modes">${modes.map(([id,title])=>`<button type="button" class="${s.mode===id?'active':''}" data-cl-mode="${id}">${title}</button>`).join('')}${act('7問診断','diagnostic','ghost')}</div><p class="cl-question">${esc(q.stem)}</p><fieldset class="cl-options" ${revealed?'disabled':''}><legend class="sr-only">回答を選択</legend>${q.choices.map((c,i)=>`<button type="button" class="cl-option ${revealed?(i===q.answer?'correct':s.choice===i?'wrong':''):''}" data-cl-choice="${i}" ${revealed?'disabled':''}><span>${'ABCD'[i]}</span>${esc(c)}</button>`).join('')}</fieldset>${revealed?`<div class="cl-feedback" role="status"><strong>${s.choice===q.answer?'正解。理由まで言えるか確認しよう。':'ここは復習しよう。'}</strong><p>${esc(q.why)}</p><p class="cl-muted">${esc(q.trap)}</p><p class="cl-source">関連資料：${source(D.moduleById(q.moduleId).source)}</p>${last?`<small>次の復習：${dayText(last.nextAt)}${last.confidence==='unsure'?'（説明に不安あり）':''}</small>`:''}<div class="cl-actions">${act('次の問題','next-question','primary')}${act('説明できた','confidence-sure','ghost')}${act('説明はまだ不安','confidence-unsure','ghost')}${act('教材に戻る','back-lesson','ghost')}</div></div>`:`<p class="cl-muted">選択肢を押すと採点と理由が表示されます。独自問題であり、公式過去問ではありません。</p>`}</section><aside class="cl-card cl-side"><p class="cl-eyebrow">RECALL SYSTEM</p><h3>間違えた問題が次に出る</h3><p>誤答は翌日以降、正答は3日・7日・14日後（説明に不安があれば翌日）を目安に再表示。回答履歴を端末内に記録します。</p><p class="cl-muted">予定は固定間隔による学習補助であり、記憶定着を保証するものではありません。</p><div class="cl-mini-stats"><span>解答した問題 <b>${getStats(s,tr.id).answered}</b></span><span>最新回答が正解 <b>${getStats(s,tr.id).correct}</b></span><span>復習対象 <b>${getStats(s,tr.id).due}</b></span></div></aside></div>`;
     }
     function diagnostic(){
       const ids=['pmp','bookkeeping','statistics','diagnosis','it','ecba','scrum'];
       const answered=ids.filter(id=>s.diagnostic[id]!==undefined).length;
+      if(s.diagnosticFeedback){const id=s.diagnosticFeedback.id,q=trackQs(id)[0];return `<section class="cl-card cl-diagnostic"><p class="cl-eyebrow">DIAGNOSTIC EXPLANATION / ${answered} OF 7</p><h3>${s.diagnostic[id]?'正解した理由を確認':'誤答を復習候補にする'}</h3><p>${esc(q.why)}</p><p class="cl-muted">${esc(q.trap)}</p><div class="cl-actions">${act('次の領域へ','diagnostic-next','primary')}</div></section>`;}
       if(answered===7){const errs=ids.filter(id=>!s.diagnostic[id]);return `<section class="cl-card"><p class="cl-eyebrow">SKILL CHECK / 7 QUESTIONS</p><h3>現在地：7問中${7-errs.length}問正解</h3><p>得点はこの7問だけの正答数です。試験の合格見込みや、職業適性の判定ではありません。</p><div class="cl-diagnostic-grid">${ids.map(id=>`<div class="cl-diag-result"><span>${esc(D.trackById(id).short)}</span><strong>${s.diagnostic[id]?'正答':'復習候補'}</strong></div>`).join('')}</div>${errs.length?`<p>復習候補：${errs.map(id=>esc(D.trackById(id).name)).join('、')}</p>`:''}<div class="cl-actions">${act('今の学習領域の問題へ','all-quiz','primary')}${act('7問診断をやり直す','diagnostic-reset','ghost')}</div></section>`;}
       const id=ids.find(x=>s.diagnostic[x]===undefined),quest=trackQs(id)[0];
       return `<section class="cl-card cl-diagnostic"><p class="cl-eyebrow">BASELINE / ${answered+1} OF 7</p><progress value="${answered}" max="7" aria-label="診断の進捗"></progress><h3>${esc(D.trackById(id).name)}</h3><p class="cl-question">${esc(quest.stem)}</p><div class="cl-options">${quest.choices.map((x,i)=>`<button type="button" class="cl-option" data-cl-diagnostic-choice="${i}" data-id="${id}"><span>${'ABCD'[i]}</span>${esc(x)}</button>`).join('')}</div><p class="cl-muted">全7領域を1問ずつ確認する短い出発点の診断です。実際の得意・不得意を確定できる検査ではありません。</p></section>`;
     }
     function work(tr){
       const m=D.moduleById(s.moduleId),saved=s.notes[m.id]||{},done=saved.checks||[];
-      return `<div class="cl-two-column"><aside class="cl-module-list"><h3>成果物を選ぶ</h3>${tr.modules.map(x=>`<button type="button" class="cl-module-item ${s.moduleId===x.id?'selected':''}" data-cl-module="${x.id}"><span>▣</span><span><strong>${esc(x.title)}</strong><small>${s.notes[x.id]?.text?.trim()?'下書き保存済み':'未着手'}</small></span></button>`).join('')}</aside><article class="cl-card"><p class="cl-eyebrow">WORK PRODUCT / SELF REVIEW</p><h3>${esc(m.title)}の実務メモ</h3><p>${esc(m.task)}</p><p class="cl-muted">架空データまたは公開情報を使用してください。業務上の秘密・個人情報は入力しないでください。</p><label class="cl-input-label" for="clWorkText">成果物の下書き</label><textarea id="clWorkText" class="cl-textarea" rows="12" placeholder="${esc(m.template)}">${esc(saved.text||'')}</textarea><div class="cl-checks"><strong>セルフレビュー（自動採点ではありません）</strong>${m.checks.map((v,i)=>`<label><input type="checkbox" data-cl-check="${i}" ${done.includes(i)?'checked':''}> ${esc(v)}</label>`).join('')}</div><div class="cl-actions">${act('この端末に保存','save-note','primary')}${act('記入の型をコピー','copy-template','ghost')}${act('Markdownを書き出す','download-note','ghost')}</div>${saved.at?`<p class="cl-muted">最終保存：${esc(new Date(saved.at).toLocaleString('ja-JP'))}</p>`:''}<p class="cl-source">参考資料：${source(m.source)}</p></article></div>`;
+      return `<div class="cl-two-column"><aside class="cl-module-list"><h3>成果物を選ぶ</h3>${tr.modules.map(x=>`<button type="button" class="cl-module-item ${s.moduleId===x.id?'selected':''}" data-cl-module="${x.id}"><span>▣</span><span><strong>${esc(x.title)}</strong><small>${s.notes[x.id]?.text?.trim()?'保存済み':s.drafts[x.id]?.trim()?'下書きあり':'未着手'}</small></span></button>`).join('')}</aside><article class="cl-card"><p class="cl-eyebrow">WORK PRODUCT / SELF REVIEW</p><h3>${esc(m.title)}の実務メモ</h3><p>${esc(m.task)}</p><p class="cl-muted">架空データまたは公開情報を使用してください。業務上の秘密・個人情報は入力しないでください。</p><label class="cl-input-label" for="clWorkText">成果物の下書き</label><textarea id="clWorkText" class="cl-textarea" rows="12" placeholder="${esc(m.template)}">${esc(s.drafts[m.id]??saved.text??'')}</textarea><div class="cl-checks"><strong>セルフレビュー（自動採点ではありません）</strong>${m.checks.map((v,i)=>`<label><input type="checkbox" data-cl-check="${i}" ${done.includes(i)?'checked':''}> ${esc(v)}</label>`).join('')}</div><div class="cl-actions">${act('この端末に保存','save-note','primary')}${act('記入の型をコピー','copy-template','ghost')}${act('Markdownを書き出す','download-note','ghost')}</div>${saved.at?`<p class="cl-muted">最終保存：${esc(new Date(saved.at).toLocaleString('ja-JP'))}</p>`:''}<p class="cl-source">参考資料：${source(m.source)}</p></article></div>`;
+    }
+    function scope(tr){
+      const rows=tr.modules.map(m=>{const x=D.crosswalkFor(m.id);return `<article class="cl-scope-row"><div><strong>${esc(m.title)}</strong><p class="cl-muted">${esc(x?.note||'')}</p><span class="cl-chip">${esc(x?.relation||'未分類')}</span></div><div class="cl-related-links">${(x?.atlasChapters||[]).map(id=>`<button type="button" data-cl-chapter="${id}">${esc(atlasChapter(id)?.title||id)} →</button>`).join('')}</div></article>`}).join('');
+      const gaps=(D.scopeGaps[tr.id]||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+      return `<section class="cl-card"><p class="cl-eyebrow">COVERAGE / NOT A FULL EXAM PREP</p><h3>既存の43章を活かし、足りない範囲を見える化する</h3><p>下記は<strong>編集上の対応表</strong>であり、公式試験に対する網羅率ではありません。重複を避けて関連章へ移れます。</p><p class="cl-source">出題範囲の原典：${source(D.references[tr.id])}</p></section><section class="cl-card"><h3>今後追加すべき分野（現時点の未収録）</h3><ul class="cl-gap-list">${gaps}</ul><p class="cl-muted">資格試験のシラバス全項目を照合した完成版ではありません。未収録の主な分野のみ示します。</p></section><section class="cl-card"><h3>既存Atlasとの関連</h3><div class="cl-scope-rows">${rows}</div></section>`;
     }
     function strategy(tr){
       return `<div class="cl-strategy"><section class="cl-card"><p class="cl-eyebrow">QUESTION THE ASSUMPTION</p><h3>資格を取らない選択肢も、同じ条件で比較する</h3><p>「合格すること」と「仕事の判断が変わること」は別。受験料、研修、維持費だけでなく、勉強の時間を実務演習に使う場合も比べます。</p><div class="cl-three"><div><strong>知識を獲得する</strong><span>試験範囲を教材として使う。受験しなくても可能。</span></div><div><strong>能力を証明する</strong><span>採用・上司・顧客が資格をどう評価するか、一次情報で確かめる。</span></div><div><strong>機会を得る</strong><span>応募や案件に必須条件か。歓迎条件と分ける。</span></div></div><h4>今回の投資方針</h4><div class="cl-decision">${[['learn','まず学ぶ。受験は未決定'],['exam','受験も検討する'],['practice','実務成果物を優先する']].map(([id,l])=>`<label><input type="radio" name="clDecision" value="${id}" ${s.certDecision===id?'checked':''}> ${l}</label>`).join('')}</div><p class="cl-warning">${esc(tr.caveat)}</p><p class="cl-source">受験制度：${source(D.references[tr.id])}</p><p class="cl-source">関連する解説：<a href="https://silovar-uk.github.io/myessays/#/essay/consultant-certification-why-proof-comes-after-work-2026" target="_blank" rel="noopener noreferrer">資格を取る前に、5年働いてください ↗</a></p></section>
       <section class="cl-card"><p class="cl-eyebrow">90-DAY DECISION FRAME</p><h3>資格を取るか、90日で決める</h3><ol class="cl-timeline"><li><strong>1〜14日</strong>公式出題範囲と受験条件を確認し、現在地診断を行う。</li><li><strong>15〜30日</strong>試験学習と実務演習を同じ時間で比較する。</li><li><strong>31〜60日</strong>実際に使える資料を作成し、第三者へ説明する。</li><li><strong>61〜90日</strong>上達したこと、費用、求められる資格条件を検証して意思決定する。</li></ol><p class="cl-muted">12週間の学習計画は学習支援用です。合格に必要な学習時間や受験資格を満たす保証ではありません。</p>${act('今日の学習に戻る','today','primary')}</section></div>`;
     }
+    let draftTimer=null;
+    function onInput(event){
+      if(event.target?.id!=='clWorkText')return;
+      s.drafts[s.moduleId]=event.target.value;
+      if(draftTimer)clearTimeout(draftTimer);
+      draftTimer=setTimeout(()=>{save();},350);
+    }
     function onChange(event){
       const t=event.target;
-      if(t.id==='clTrack'){s.trackId=t.value;s.moduleId=D.trackById(t.value).modules[0].id;s.quizId=null;s.revealId=null;save();render();}
+      if(t.id==='clTrack'){rememberDraft();s.lastModuleByTrack[s.trackId]=s.moduleId;s.trackId=t.value;s.moduleId=s.lastModuleByTrack[t.value]||D.trackById(t.value).modules[0].id;s.quizId=null;s.revealId=null;save();render();}
       if(t.name==='clDecision'){s.certDecision=t.value;save();}
     }
     function onClick(event){
       const t=event.target.closest('button');
       if(!t||!root.contains(t))return;
+      rememberDraft();
       if(t.dataset.clTab){s.tab=t.dataset.clTab;s.revealId=null;save();render();return;}
-      if(t.dataset.clModule){s.moduleId=t.dataset.clModule;s.quizId=null;s.revealId=null;save();render();return;}
+      if(t.dataset.clModule){s.moduleId=t.dataset.clModule;s.lastModuleByTrack[s.trackId]=s.moduleId;s.quizId=null;s.revealId=null;save();render();return;}
       if(t.dataset.clWeek){let a=s.weeklyDone,k=t.dataset.clWeek;s.weeklyDone=a.includes(k)?a.filter(x=>x!==k):[...a,k];save();render();return;}
+      if(t.dataset.clChapter){openAtlas(t.dataset.clChapter);return;}
       if(t.dataset.clQuestion){s.quizId=t.dataset.clQuestion;s.tab='quiz';s.mode='mixed';s.revealId=null;save();render();return;}
       if(t.dataset.clMode){s.mode=t.dataset.clMode;s.quizId=null;s.revealId=null;save();render();return;}
       if(t.dataset.clChoice!==undefined&&s.tab==='quiz'){
@@ -142,7 +176,7 @@
         const streak=correct?(previous?.correct?(previous.streak||1)+1:1):0;
         const days=correct?[3,7,14][Math.min(streak-1,2)]:1;
         const next=new Date(Date.now()+days*86400000).toISOString();
-        s.attempts.push({id:q.id,choice,correct,streak,nextAt:next,at:new Date().toISOString()});
+        s.attempts.push({id:q.id,choice,correct,streak,confidence:null,nextAt:next,at:new Date().toISOString()});
         if(s.attempts.length>600)s.attempts=s.attempts.slice(-600);
         s.choice=choice;s.revealId=q.id;save();render();return;
       }
@@ -151,13 +185,29 @@
         const id=t.dataset.id,q=trackQs(id)[0];
         if(!ids.includes(id)||s.diagnostic[id]!==undefined)return;
         s.diagnostic[id]=Number(t.dataset.clDiagnosticChoice)===q.answer;
+        s.diagnosticFeedback={id};
         save();render();return;
       }
       switch(t.dataset.clAction){
+        case 'next-action':{
+          const plan=recommendNext();s.moduleId=plan.moduleId;s.lastModuleByTrack[s.trackId]=plan.moduleId;
+          s.tab=plan.kind==='lesson'?'curriculum':plan.kind==='work'?'work':'quiz';
+          if(s.tab==='quiz'){s.mode=plan.kind==='review'?'review':'mixed';s.quizId=plan.questionId;}s.revealId=null;break;
+        }
+        case 'scope':s.tab='scope';break;
+        case 'diagnostic-next':s.diagnosticFeedback=null;break;
+        case 'confidence-sure':
+        case 'confidence-unsure':{
+          const last=recentAttempt(s.quizId);if(!last)return;
+          const confidence=t.dataset.clAction==='confidence-sure'?'sure':'unsure';
+          last.confidence=confidence;
+          if(last.correct){const days=confidence==='unsure'?1:[3,7,14][Math.min((last.streak||1)-1,2)];last.nextAt=new Date(Date.parse(last.at)+days*86400000).toISOString();}
+          save();render();return;
+        }
         case 'next-lesson':s.tab='curriculum';s.moduleId=D.trackById(s.trackId).modules.find(m=>!lessonDone(m.id))?.id||s.moduleId;break;
         case 'due':s.tab='quiz';s.mode='review';s.quizId=null;s.revealId=null;break;
         case 'diagnostic':s.tab='quiz';s.mode='diagnostic';s.quizId=null;s.revealId=null;break;
-        case 'diagnostic-reset':s.diagnostic={};s.mode='diagnostic';break;
+        case 'diagnostic-reset':s.diagnostic={};s.diagnosticFeedback=null;s.mode='diagnostic';break;
         case 'curriculum':s.tab='curriculum';break;
         case 'strategy':s.tab='strategy';break;
         case 'today':s.tab='today';break;
@@ -166,7 +216,9 @@
         case 'complete':s.completed=lessonDone(s.moduleId)?s.completed.filter(id=>id!==s.moduleId):[...s.completed,s.moduleId];break;
         case 'all-quiz':s.tab='quiz';s.mode='mixed';s.quizId=null;s.revealId=null;break;
         case 'next-question':{
-          const q=pickNext(s.mode,s.quizId)||trackQs(s.trackId).find(q=>q.id!==s.quizId)||trackQs(s.trackId)[0];
+          const current=D.questions.find(q=>q.id===s.quizId);
+          const nextInModule=current?D.questionsFor(current.moduleId).find(q=>q.id!==s.quizId&&!recentAttempt(q.id)):null;
+          const q=nextInModule||pickNext(s.mode,s.quizId)||trackQs(s.trackId).find(q=>q.id!==s.quizId)||trackQs(s.trackId)[0];
           s.quizId=q?.id||null;s.revealId=null;break;
         }
         case 'back-lesson':s.tab='curriculum';s.moduleId=D.questions.find(q=>q.id===s.quizId)?.moduleId||s.moduleId;s.revealId=null;break;
@@ -176,6 +228,7 @@
           const checks=[...root.querySelectorAll('[data-cl-check]:checked')].map(x=>Number(x.dataset.clCheck));
           if(text.trim().length<12){toast('メモを12文字以上入力してください。','error');return;}
           s.notes[s.moduleId]={text,checks,at:new Date().toISOString()};
+          s.drafts[s.moduleId]=text;
           save();toast('実務メモを端末内に保存しました。');render();return;
         }
         case 'copy-template':{
