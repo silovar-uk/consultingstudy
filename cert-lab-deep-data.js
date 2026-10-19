@@ -71,7 +71,7 @@ function grade(q,input){
  }
  if(q.format==='choice'){
    const n=Number(input);
-   if(!Number.isInteger(n)||n<0||n>=q.choices.length)return {status:'invalid',reason:'一つ選択してください。'};
+   if(input===null||input===undefined||input===' '||!Number.isInteger(n)||n<0||n>=q.choices.length)return {status:'invalid',reason:'一つ選択してください。'};
    return {status:n===q.answer?'correct':'incorrect',response:n};
  }
  if(q.format==='multi'){
@@ -82,6 +82,7 @@ function grade(q,input){
  }
  if(q.format==='order'){
    if(!Array.isArray(input)||input.length!==q.items.length)return {status:'invalid',reason:'すべての順序を選択してください。'};
+   if(input.some(x=>x===null||x===undefined||x===''))return {status:'invalid',reason:'すべての順序を選択してください。'};
    const nums=input.map(Number);
    if(new Set(nums).size!==q.items.length||nums.some(n=>!Number.isInteger(n)||n<0||n>=q.items.length))return {status:'invalid',reason:'同じ手順は2回使えません。'};
    return {status:JSON.stringify(nums)===JSON.stringify(q.answer)?'correct':'incorrect',response:nums};
