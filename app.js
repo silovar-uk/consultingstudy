@@ -420,7 +420,7 @@
         <div class="header-meta"><span class="tag">1回 ${sessionLength}分</span><span class="status-pill focus">財務重点</span></div>
       </section>
 
-      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・${window.CERT_LAB_DATA?.questions.length || 0}問の独自クイズ。既存43章と連動し、間違いの理由から次の一手を選べる。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
+      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・${(window.CERT_LAB_DATA?.questions.length||0)+(window.CERT_LAB_DEEP?.items.length||0)}問。4択に加えて計算・資料読解・誤り訂正・記述と6段階の統合ケース。既存43章と連動する。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
 
       <section class="path-grid" aria-label="目的別の入口">
         <article class="path-card start">
