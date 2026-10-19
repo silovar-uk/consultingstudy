@@ -78,7 +78,7 @@
  const due=dueQuestions().sort((a,b)=>String(recentAttempt(a.id)?.nextAt||'').localeCompare(String(recentAttempt(b.id)?.nextAt||'')));
  if(due.length){const q=due[0];return {kind:'review',moduleId:q.moduleId,questionId:q.id,title:'前に解いた問いを、もう一度考える',detail:'復習対象の問題が'+due.length+'問あります。正解した記憶ではなく理由を確認します。',button:'復習の1問を解く'};}
  const modules=tr.modules;
- const selected=modules.find(m=>!lessonDone(m.id))||modules.find(m=>!s.notes[m.id]?.text?.trim())||modules[0];
+ const selected=modules.find(m=>!lessonDone(m.id)||D.questionsFor(m.id).some(q=>!recentAttempt(q.id))||!s.notes[m.id]?.text?.trim())||modules[0];
  const qs=D.questionsFor(selected.id);
  const unseen=qs.filter(q=>!recentAttempt(q.id));
  if(!lessonDone(selected.id))return {kind:'lesson',moduleId:selected.id,title:'まず「'+selected.title+'」を理解する',detail:'重要概念と具体例を確認し、読了をチェックします。',button:'この講義を開く'};
