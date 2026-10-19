@@ -26,18 +26,13 @@
       financeLevel: 'basic'
     },
     progress: {
-      completedChapters: ['chapter-00', 'chapter-03', 'chapter-07'],
+      completedChapters: [],
       selectedChapter: 'chapter-08',
       lessonChecks: {},
       lastViewedChapter: 'chapter-08'
     },
-    attempts: [
-      { questionId: 'finance-cf-001', attemptedAt: '2026-07-03T09:00:00.000Z', isCorrect: false, confidence: 2, errorTags: ['knowledge_gap'], selfNote: '利益と現金の差を、言葉で説明しきれなかった。' },
-      { questionId: 'finance-pl-001', attemptedAt: '2026-07-04T08:30:00.000Z', isCorrect: false, confidence: 3, errorTags: ['fact_hypothesis_mixed', 'denominator_error'], selfNote: '売上成長と利益率低下を混ぜて書いた。' }
-    ],
-    notes: [
-      { id: 'note-initial-1', title: '財務メモ', body: '数字を見たら、まず「事実 / 解釈 / 仮説 / 確認事項」に分ける。', createdAt: '2026-07-04T09:00:00.000Z' }
-    ],
+    attempts: [],
+    notes: [],
     workspace: {
       activeCompany: 'ホワイトリバー（架空）',
       pl: { revenuePrev: 50000, revenueCurrent: 56000, cogsPrev: 30000, cogsCurrent: 35840, sgaPrev: 14000, sgaCurrent: 15120 },
@@ -50,7 +45,7 @@
         check: '商品別粗利率、仕入単価、値引率、カテゴリ別売上構成、販管費内訳を確認する。'
       }
     },
-    artifacts: DATA.artifacts,
+    artifacts: DATA.artifacts.map(item => ({ ...item, status: '未着手', date: '—' })),
     experience: {
       selectedRoute: 'home',
       diagnostic: { completed: false, answers: {}, score: null, bySkill: {}, completedAt: null },
@@ -371,8 +366,9 @@
       const hits = relevant.filter((attempt) => attempt.isCorrect).length;
       const highConfidenceMisses = relevant.filter((attempt) => !attempt.isCorrect && Number(attempt.confidence) >= 4).length;
       const confidenceMismatch = relevant.filter((attempt) => !attempt.isCorrect && Number(attempt.confidence) >= 3).length;
-      const level = clamp(5 - misses + Math.min(hits, 2), 1, 5);
-      return { ...definition, misses, hits, highConfidenceMisses, confidenceMismatch, level, score: level * 20 };
+      const hasEvidence = relevant.length > 0;
+      const level = hasEvidence ? clamp(5 - misses + Math.min(hits, 2), 1, 5) : 0;
+      return { ...definition, misses, hits, highConfidenceMisses, confidenceMismatch, hasEvidence, level, score: hasEvidence ? level * 20 : 0 };
     });
   }
 
@@ -392,12 +388,13 @@
 
   function renderCertLab() {
     setBreadcrumb('資格・実務ラボ', '学習と資格の判断');
-    window.CERT_LAB.mount(root, state, { persist, toast: showToast, navigate: (view) => { activeView = view; render(); } });
+    window.CERT_LAB.mount(root, state, { persist, toast: showToast, atlasChapters: DATA.chapters, openChapter, navigate: (view) => { activeView = view; render(); } });
   }
 
   function render() {
     root.onclick = null;
     root.onchange = null;
+    root.oninput = null;
     stopTimer();
     activeNav(activeView);
     appShell.classList.remove('nav-open');
@@ -423,7 +420,7 @@
         <div class="header-meta"><span class="tag">1回 ${sessionLength}分</span><span class="status-pill focus">財務重点</span></div>
       </section>
 
-      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・42問の独自クイズ。間違えた問題の復習と、12週間の学習計画を一画面から。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
+      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・${window.CERT_LAB_DATA?.questions.length || 0}問の独自クイズ。既存43章と連動し、間違いの理由から次の一手を選べる。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
 
       <section class="path-grid" aria-label="目的別の入口">
         <article class="path-card start">
@@ -463,7 +460,7 @@
         <aside class="card quick-signal">
           <p class="section-label">RIGHT NOW</p>
           <h3>今、戻ると効くところ</h3>
-          <div class="signal-main"><b>${escapeHTML(urgent.label)}</b><span>理解度 ${urgent.score}%</span></div>
+          <div class="signal-main"><b>${escapeHTML(urgent.label)}</b><span>${urgent.hasEvidence ? `暫定の復習目安 ${urgent.score}%` : 'まだ回答記録がありません'}</span></div>
           <div class="skill-bar large"><i style="width:${urgent.score}%"></i></div>
           <p>${escapeHTML(urgent.next)}</p>
           <button class="button ghost small" data-action="open-route" data-route="weakness">理由と次の一手を見る →</button>
@@ -562,8 +559,8 @@
     const special = DATA.questions.find((item) => item.type === 'special') || DATA.questions.at(-1);
     root.innerHTML = `
       <section class="view-heading"><div><p class="section-label">DELIBERATE IMPROVEMENT</p><h2>弱点を、次に解く一問へ変える</h2><p>正答率だけで判断しない。自信があるのに外した領域、誤答タグ、回答メモから、戻るべき前提を見つける。</p></div><div class="header-meta"><span class="tag">記録 ${state.attempts.length}回</span><button class="button ghost small" data-action="open-route" data-route="start">3分診断を確認</button></div></section>
-      <section class="confidence-alert"><div><p class="eyebrow">HIGH-CONFIDENCE MISSES</p><h3>自信ありの誤答が ${confidenceMisses} 件</h3><p>ここは「知らない」より厄介やけど、直せば一気に精度が上がる場所。最優先で一問解き直す。</p></div><button class="button secondary" data-action="open-question" data-question-id="${priority.questionId}">優先ドリルを開く →</button></section>
-      <section class="weakness-map-grid">${skills.map((skill) => `<article class="weakness-card"><div class="weakness-card-top"><div><p class="eyebrow">${skill.level <= 2 ? 'REVIEW FIRST' : skill.level <= 3 ? 'PRACTICING' : 'STABLE'}</p><h3>${escapeHTML(skill.label)}</h3></div><span class="weakness-score">${skill.score}</span></div><div class="skill-bar large"><i style="width:${skill.score}%"></i></div><div class="weakness-metrics"><span>要復習 ${skill.misses}回</span><span>理解 ${skill.hits}回</span></div><p>${escapeHTML(skill.next)}</p><div class="today-actions"><button class="button ghost small" data-action="open-chapter" data-chapter-id="${skill.chapterId}">レッスン</button><button class="button secondary small" data-action="open-question" data-question-id="${skill.questionId}">1問解く</button></div></article>`).join('')}</section>
+      <section class="confidence-alert"><div><p class="eyebrow">HIGH-CONFIDENCE MISSES</p><h3>自信ありの誤答が ${confidenceMisses} 件</h3><p>自信があるのに誤答した領域は、根拠から確認して別の問題で解き直す。</p></div><button class="button secondary" data-action="open-question" data-question-id="${priority.questionId}">優先ドリルを開く →</button></section>
+      <section class="weakness-map-grid">${skills.map((skill) => `<article class="weakness-card"><div class="weakness-card-top"><div><p class="eyebrow">${!skill.hasEvidence ? 'UNASSESSED' : skill.level <= 2 ? 'REVIEW FIRST' : skill.level <= 3 ? 'PRACTICING' : 'PRACTICING'}</p><h3>${escapeHTML(skill.label)}</h3></div><span class="weakness-score">${skill.hasEvidence ? skill.score : '—'}</span></div><div class="skill-bar large"><i style="width:${skill.score}%"></i></div><div class="weakness-metrics"><span>要復習 ${skill.misses}回</span><span>理解 ${skill.hits}回</span></div><p>${escapeHTML(skill.next)}</p><div class="today-actions"><button class="button ghost small" data-action="open-chapter" data-chapter-id="${skill.chapterId}">レッスン</button><button class="button secondary small" data-action="open-question" data-question-id="${skill.questionId}">1問解く</button></div></article>`).join('')}</section>
       <section class="weakness-plan-layout"><article class="card card-pad"><p class="section-label">NEXT 30 MINUTES</p><h3>次の30分メニュー</h3><div class="review-plan"><div class="review-plan-item"><b>01</b><div><strong>5分｜${escapeHTML(getChapter(priority.chapterId).title)}</strong><p>${escapeHTML(priority.next)}</p></div></div><div class="review-plan-item"><b>02</b><div><strong>10分｜対応ドリルを1問</strong><p>自信度も残し、どこで迷ったかをタグで記録する。</p></div></div><div class="review-plan-item"><b>03</b><div><strong>15分｜スペシャル問題</strong><p>別の設定でも同じ型を使えるか、自由記述で確かめる。</p></div></div></div></article><aside class="card card-pad"><p class="section-label">SPECIAL PROBLEM</p><h3>${escapeHTML(special.title)}</h3><p class="muted">${escapeHTML(special.lead)}</p><div class="today-actions"><button class="button primary" data-action="open-question" data-question-id="${special.id}">スペシャル問題を解く →</button><button class="button ghost" data-view="review">振り返りを見る</button></div></aside></section>`;
     bindCommonEvents();
   }
