@@ -91,7 +91,7 @@ for(const v of variants){
   await page.locator('#cl-transfer-root .cl-tf').waitFor();
   await page.locator('#tfValue').fill('-2');
   await page.locator('[data-tf-action="submit"]').click();
-  assert.match(await page.locator('#cl-transfer-root').innerText(),/別事例での練習/);
+  assert.match(await page.locator('#cl-transfer-root').innerText(),/別事例の練習/);
   await page.locator('#tfValue').fill('-4');
   await page.locator('[data-tf-action="submit"]').click();
   assert.match(await page.locator('#cl-transfer-root').innerText(),/初見評価は、後日に解く/);
