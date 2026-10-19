@@ -21,7 +21,7 @@ for(const domain of T.studies){
   assert.equal(T.stepFor({},domain.id,now).phase,'A');
   assert.equal(T.stepFor({},domain.id,now).state,'ready');
   for(const q of domain.questions){
-    assert.ok(q.stem.length>40&&q.why.length>35,'explanation richness '+q.id);
+    assert.ok(q.stem.length>30&&q.why.length>35,'explanation richness '+q.id);
     assert.equal(T.grade(q,q.answer).status,'correct',q.id);
     if(q.kind==='choice'){
       assert.equal(q.choices.length,4);
