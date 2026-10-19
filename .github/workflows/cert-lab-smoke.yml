@@ -9,6 +9,9 @@ on:
       - 'cert-lab-deep-data.js'
       - 'cert-lab-deep-ui.js'
       - 'tests/cert-lab-deep.mjs'
+      - 'cert-lab-transfer-data.js'
+      - 'cert-lab-transfer-ui.js'
+      - 'tests/cert-lab-transfer.mjs'
       - 'data.js'
       - 'app.js'
       - 'index.html'
@@ -29,3 +32,4 @@ jobs:
         run: |
           node tests/cert-lab-smoke.mjs
           node tests/cert-lab-deep.mjs
+          node tests/cert-lab-transfer.mjs
