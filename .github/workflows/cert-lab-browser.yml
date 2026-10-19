@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'cert-lab*.js'
+      - 'cert-lab-deep-data.js'
+      - 'cert-lab-deep-ui.js'
       - 'cert-lab.css'
       - 'app.js'
       - 'data.js'
