@@ -16,7 +16,7 @@ assert.equal(T.intervalDays,3,'pilot: three days, explicitly not an optimal cogn
 const now=Date.parse('2026-10-20T00:00:00.000Z');
 for(const domain of T.studies){
   const [a,b,c]=domain.questions;
-  assert.deepEqual(domain.questions.map(q=>q.phase),['A','B','C']);
+  assert.deepEqual([...domain.questions.map(q=>q.phase)],['A','B','C']);
   assert.ok(domain.skill.length>20&&domain.sample.length>30);
   assert.equal(T.stepFor({},domain.id,now).phase,'A');
   assert.equal(T.stepFor({},domain.id,now).state,'ready');
