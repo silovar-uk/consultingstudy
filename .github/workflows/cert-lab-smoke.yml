@@ -5,6 +5,10 @@ on:
     paths:
       - 'cert-lab.js'
       - 'cert-lab-data.js'
+      - 'cert-lab-crosswalk.js'
+      - 'data.js'
+      - 'app.js'
+      - 'index.html'
       - 'tests/cert-lab-smoke.mjs'
       - '.github/workflows/cert-lab-smoke.yml'
   workflow_dispatch:
