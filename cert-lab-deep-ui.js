@@ -98,8 +98,8 @@ function mount(root,certState,api={},trackId='pmp'){
     if(action==='submit'){
       const input=getInput(q);
       const graded=DB.grade(q,input);
-      if(graded.status==='invalid'){message=graded.reason;render();return;}
       S.drafts[q.id]=input;
+      if(graded.status==='invalid'){message=graded.reason;save();render();return;}
       S.attempts.push({id:q.id,at:now(),format:q.format,status:graded.status,response:graded.response,skill:q.skill,level:q.level});
       if(S.attempts.length>1000)S.attempts=S.attempts.slice(-1000);
       S.revealId=q.id;
