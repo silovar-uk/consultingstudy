@@ -84,7 +84,9 @@
  if(!lessonDone(selected.id))return {kind:'lesson',moduleId:selected.id,title:'まず「'+selected.title+'」を理解する',detail:'重要概念と具体例を確認し、読了をチェックします。',button:'この講義を開く'};
  if(s.certDecision==='practice'&&!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'学んだ知識を成果物に変える',detail:'実務を優先する方針に沿って「'+selected.title+'」のメモを作成します。',button:'実務メモを作る'};
  if(unseen.length)return {kind:'quiz',moduleId:selected.id,questionId:unseen[0].id,title:'知識を別の場面で試す',detail:'「'+selected.title+'」の未回答問題が'+unseen.length+'問あります。',button:'次の1問を解く'};
- if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
+ const deep=window.CERT_LAB_DEEP?.drills.find(x=>x.moduleId===selected.id&&!s.deepPractice?.attempts?.some(a=>a.id===x.id));
+  if(deep)return {kind:'practice',moduleId:selected.id,title:'4択ではない方法で、理解を確かめる',detail:'「'+selected.title+'」に関連する '+window.CERT_LAB_DEEP.formats[deep.format]+' の演習があります。',button:'実戦問題へ進む'};
+  if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
  return {kind:'work',moduleId:selected.id,title:'一つ前の仕事を、よりよく説明する',detail:'この領域の講義と問題は一巡しました。以前の成果物を確認し、改善してください。',button:'成果物を見直す'};
 }
     const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['practice','実戦演習'],['work','成果物'],['scope','範囲と対応'],['strategy','資格の判断']];
@@ -194,7 +196,8 @@
       switch(t.dataset.clAction){
         case 'next-action':{
           const plan=recommendNext();s.moduleId=plan.moduleId;s.lastModuleByTrack[s.trackId]=plan.moduleId;
-          s.tab=plan.kind==='lesson'?'curriculum':plan.kind==='work'?'work':'quiz';
+          s.tab=plan.kind==='lesson'?'curriculum':plan.kind==='work'?'work':plan.kind==='practice'?'practice':'quiz';
+          if(s.tab==='practice')s.practiceStartModuleId=plan.moduleId;
           if(s.tab==='quiz'){s.mode=plan.kind==='review'?'review':'mixed';s.quizId=plan.questionId;}s.revealId=null;break;
         }
         case 'scope':s.tab='scope';break;
