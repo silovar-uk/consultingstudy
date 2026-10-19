@@ -1,5 +1,26 @@
 # Consulting Fundamentals Atlas
 
+## 2026年10月20日｜学習成果を確かめる3段階パイロット
+
+公開入口：[資格・実務ラボ](https://silovar-uk.github.io/consultingstudy/#/cert-lab) → **「実力検証」** タブ
+
+**既存の学習問題90問は変更せず**、評価用として財務・統計・PMOの各3問、合計9問を別に追加した。主な目的は、同じ問題を覚えて正解することと、初見の別事例に対応することを分けて観察すること。
+
+- A：解説を見ずに初回の確認に回答。
+- B：判断の型を確認し、別の事例に回答。解説を表示。
+- C：B回答から試行的に72時間後、まだ見ていない別事例を回答できる。待機期間は設問と解説を画面に表示しない。
+- 学習履歴は既存の `state.certLab` 内に保存し、追加回答は `transferPilot` へ分離。以前の記録・成果物を維持。
+- **3問の差だけで能力向上・学習効果の因果性を主張しない**。問題の難易度は独立に等化されていない。3日間隔は最適間隔ではない。
+- JavaScriptが公開された静的サイトのため、厳格な不正防止・試験監督の仕組みではない。
+- コード：`cert-lab-transfer-data.js`、`cert-lab-transfer-ui.js`。
+- 自動テスト：`tests/cert-lab-transfer.mjs`、`tests/cert-lab-browser.mjs`（PC ChromiumとモバイルWebKit）。
+- [リサーチ→再リサーチ→5層の構造化→次期評価計画](docs/transfer-pilot-research-20261020.md)
+- [既存90問の機械的な監査台帳](docs/question-audit-20261020.csv)
+
+実際の学力向上を測るには、問題の難易度、評価者間の一致度、学習者の反復測定など、追加の外部検証が必要。
+
+---
+
 ## 2026年10月19日｜多形式の実戦演習・横断ケースを追加
 
 [学習サイトの「実戦演習」へ](https://silovar-uk.github.io/consultingstudy/#/cert-lab)（画面内の「実戦演習」タブ）
