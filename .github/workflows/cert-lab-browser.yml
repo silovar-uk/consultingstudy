@@ -1,0 +1,32 @@
+name: Cert Lab browser UX
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cert-lab*.js'
+      - 'cert-lab.css'
+      - 'app.js'
+      - 'data.js'
+      - 'index.html'
+      - 'tests/cert-lab-browser.mjs'
+      - '.github/workflows/cert-lab-browser.yml'
+  workflow_dispatch:
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test package
+        run: npm install --no-save --no-package-lock playwright@1.56.1
+      - name: Install Chromium and WebKit with OS dependencies
+        run: npx playwright install --with-deps chromium webkit
+      - name: Serve static website and test real browser flows
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/consultingstudy-server.log 2>&1 &
+          node tests/cert-lab-browser.mjs
