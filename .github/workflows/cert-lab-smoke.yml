@@ -6,6 +6,9 @@ on:
       - 'cert-lab.js'
       - 'cert-lab-data.js'
       - 'cert-lab-crosswalk.js'
+      - 'cert-lab-deep-data.js'
+      - 'cert-lab-deep-ui.js'
+      - 'tests/cert-lab-deep.mjs'
       - 'data.js'
       - 'app.js'
       - 'index.html'
@@ -23,4 +26,6 @@ jobs:
         with:
           node-version: '22'
       - name: Run content and interaction smoke tests
-        run: node tests/cert-lab-smoke.mjs
+        run: |
+          node tests/cert-lab-smoke.mjs
+          node tests/cert-lab-deep.mjs
