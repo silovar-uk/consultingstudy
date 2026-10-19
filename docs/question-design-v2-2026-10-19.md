@@ -58,7 +58,7 @@
 - [IIBA：ECBA公式試験情報](https://www.iiba.org/knowledgehub/certification/ecba-certification/about-ecba-certification/roadmap-to-ecba-certification/study-and-prepare/exam-blueprint-and-reference-map/)
 - [Scrum Guides：スクラムガイド2020](https://scrumguides.org/scrum-guide.html)
 - [Roediger & Karpicke (2006)](https://pubmed.ncbi.nlm.nih.gov/16507066/)：検索練習の長期保持への効果を扱う一次研究。**このサイトの学習効果そのものを検証した研究ではない**。
-- [Kromann et al. (2009) ほか医学教育における検索練習](https://pubmed.ncbi.nlm.nih.gov/18823514/)：短答形式、フィードバック、間隔を開けたテストの先行研究の紹介。
+- [Test-enhanced learning in medical education（医学教育における検索練習）](https://pubmed.ncbi.nlm.nih.gov/18823514/)：短答形式、フィードバック、間隔を開けたテストの先行研究の紹介。
 
 本実装の問題はすべて独自作成であり、各資格の公式試験問題を転載していない。参照元が問題の正解を直接保証するわけではないため、個々の問題の専門家査読は次段階に残す。
 
