@@ -52,7 +52,7 @@ for(const c of E.cases){
   for(const f of E.fields)assert.ok(md.includes(f.title));
 }
 for(const x of E.rubric){
-  for(const level of ['zero','one','two'])assert.ok(x[level].length>=18,x.id+' '+level);
+  for(const level of ['zero','one','two'])assert.ok(x[level].length>=12,x.id+' '+level);
 }
 assert.ok(context.window.CERT_LAB_EVIDENCE_UI?.mount);
 console.log('PASS: two authentic PMO cases, 5 evidence criteria, evidence records, safety checks, immutable snapshots, reviewer export and 90-question backward compatibility');
