@@ -24,6 +24,7 @@ for(const v of variants){
   page.on('pageerror',e=>errors.push(String(e)));
   await page.goto(origin+'#/cert-lab',{waitUntil:'load'});
   await page.locator('.cert-lab h2').waitFor();
+  assert.equal(await page.locator('.cl-switcher [data-cl-tab]').count(),4,'four lab primary tabs');
   assert.match(await page.locator('.cert-lab h2').innerText(),/資格・実務ラボ/);
   await page.getByRole('button',{name:'この講義を開く'}).click();
   assert.match(await page.locator('.cl-lesson h3').innerText(),/取引を資産と負債に翻訳する/);
@@ -199,5 +200,17 @@ for(const v of variants){
   assert.deepEqual(errors,[],'uncaught page errors');
   console.log('PASS '+v.name+' / real DOM flows, state persistence, viewport');
   await context.close();
+  // First-time visitor: task-first entry must work without saved history.
+  const pristine=await browser.newContext(v.context);
+  const fresh=await pristine.newPage();
+  await fresh.goto(origin,{waitUntil:'load'});
+  await fresh.locator('.ux-today').waitFor();
+  assert.match(await fresh.locator('.ux-resume').innerText(),/最初の学習を始める/);
+  await fresh.locator('[data-purpose="learn"]').click();
+  await fresh.locator('.cl-lesson').waitFor();
+  await goToday(fresh);
+  await fresh.locator('[data-action="resume-lab"]').click();
+  await fresh.locator('.cl-lesson').waitFor();
+  await pristine.close();
   await browser.close();
 }
