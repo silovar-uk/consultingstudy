@@ -24,18 +24,23 @@
         </div>
       </div>
 
-      <nav class="main-nav" id="mainNav">
-        <button class="nav-item is-active" data-view="home"><span class="nav-icon">⌂</span>ホーム</button>
-        <button class="nav-item" data-view="cert-lab"><span class="nav-icon">◇</span>資格・実務ラボ</button>
-        <button class="nav-item" data-view="diagnostic"><span class="nav-icon">◎</span>はじめる</button>
-        <button class="nav-item" data-view="work"><span class="nav-icon">⌕</span>仕事に使う</button>
-        <button class="nav-item" data-view="weakness"><span class="nav-icon">↻</span>弱点マップ</button>
-        <button class="nav-item" data-view="map"><span class="nav-icon">⌘</span>学習マップ</button>
-        <button class="nav-item" data-view="lesson"><span class="nav-icon">▤</span>教科書</button>
-        <button class="nav-item" data-view="practice"><span class="nav-icon">✦</span>問題演習</button>
-        <button class="nav-item" data-view="workspace"><span class="nav-icon">▥</span>財務ワークスペース</button>
-        <button class="nav-item" data-view="library"><span class="nav-icon">▧</span>成果物ライブラリ</button>
-        <button class="nav-item" data-view="review"><span class="nav-icon">↻</span>振り返り</button>
+      <nav class="main-nav" id="mainNav" aria-label="主要な操作">
+        <button class="nav-item is-active" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span>今日</button>
+        <button class="nav-item" data-view="work"><span class="nav-icon" aria-hidden="true">⌕</span>探す</button>
+        <button class="nav-item" data-view="cert-lab"><span class="nav-icon" aria-hidden="true">◇</span>実践</button>
+        <button class="nav-item" data-view="library"><span class="nav-icon" aria-hidden="true">▧</span>記録</button>
+        <details class="nav-more" id="navMore">
+          <summary>その他の機能 <span aria-hidden="true">⌄</span></summary>
+          <div class="nav-secondary">
+            <button class="nav-item" data-view="diagnostic">基礎診断</button>
+            <button class="nav-item" data-view="weakness">弱点マップ</button>
+            <button class="nav-item" data-view="map">学習マップ</button>
+            <button class="nav-item" data-view="lesson">教科書（43章）</button>
+            <button class="nav-item" data-view="practice">問題演習</button>
+            <button class="nav-item" data-view="workspace">財務ワークスペース</button>
+            <button class="nav-item" data-view="review">振り返り</button>
+          </div>
+        </details>
       </nav>
 
       <div class="sidebar-bottom">
