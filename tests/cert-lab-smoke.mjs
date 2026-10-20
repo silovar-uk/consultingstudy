@@ -18,7 +18,7 @@ assert.equal(new Set(D.modules.map(x=>x.id)).size,24);
 assert.equal(new Set(D.questions.map(x=>x.id)).size,72);
 assert.equal(Object.keys(D.crosswalk).length,24);
 assert.equal(D.curriculumAudit.applicationCases,21);
-assert.equal(D.curriculumAudit.updatedChoices,24);
+assert.equal(D.curriculumAudit.updatedChoices,21);
 for(const m of D.modules){
   assert.equal(D.questionsFor(m.id).length,3,'3 original/application questions per module: '+m.id);
   const link=D.crosswalkFor(m.id);
