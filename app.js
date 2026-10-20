@@ -225,7 +225,7 @@
       button.classList.toggle('is-active', button.dataset.view === view);
     });
     const more = document.getElementById('navMore');
-    if (more && ['diagnostic','weakness','map','lesson','practice','workspace','review'].includes(view)) more.open = true;
+    if (more) more.open = ['diagnostic','weakness','map','lesson','practice','workspace','review'].includes(view);
   }
 
   function stopTimer() {
@@ -405,6 +405,7 @@
     stopTimer();
     activeNav(activeView);
     appShell.classList.remove('nav-open');
+    document.getElementById('menuButton')?.setAttribute('aria-expanded','false');
     const renderers = { home: renderHome, 'cert-lab': renderCertLab, diagnostic: renderDiagnostic, work: renderWork, weakness: renderWeakness, map: renderMap, lesson: renderLesson, practice: renderPractice, workspace: renderWorkspace, library: renderLibrary, review: renderReview, settings: renderSettings };
     (renderers[activeView] || renderHome)();
   }
