@@ -12,6 +12,9 @@ on:
       - 'cert-lab-transfer-data.js'
       - 'cert-lab-transfer-ui.js'
       - 'tests/cert-lab-transfer.mjs'
+      - 'cert-lab-evidence-data.js'
+      - 'cert-lab-evidence-ui.js'
+      - 'tests/cert-lab-evidence.mjs'
       - 'data.js'
       - 'app.js'
       - 'index.html'
@@ -33,3 +36,4 @@ jobs:
           node tests/cert-lab-smoke.mjs
           node tests/cert-lab-deep.mjs
           node tests/cert-lab-transfer.mjs
+          node tests/cert-lab-evidence.mjs
