@@ -101,8 +101,18 @@
       root.onclick=onClick;
       root.onchange=onChange;
       root.oninput=onInput;
-      if(s.tab==='evidence'&&window.CERT_LAB_EVIDENCE_UI){
-        window.CERT_LAB_EVIDENCE_UI.mount(root.querySelector('#cl-evidence-root'),s,{persist:save,toast});
+      if(s.tab==='evidence'){
+        const host=root.querySelector('#cl-evidence-root');
+        s.evidenceMode=s.evidenceMode==='cross'?'cross':'pmo';
+        host.innerHTML='<nav class="cl-evidence-modes" aria-label="実務判断演習"><button type="button" data-cl-evidence-mode="pmo" class="cl-tab '+(s.evidenceMode==='pmo'?'active':'')+'" '+(s.evidenceMode==='pmo'?'aria-current="page"':'')+'>PMO判断メモ</button><button type="button" data-cl-evidence-mode="cross" class="cl-tab '+(s.evidenceMode==='cross'?'active':'')+'" '+(s.evidenceMode==='cross'?'aria-current="page"':'')+'>一案件・三視点</button></nav><div id="cl-evidence-mode-root"></div>';
+        host.querySelector('.cl-evidence-modes').onclick=e=>{
+          const b=e.target.closest('button[data-cl-evidence-mode]');if(!b)return;
+          const next=b.dataset.clEvidenceMode;if(next===s.evidenceMode)return;
+          s.evidenceMode=next;save();render();
+        };
+        const modeRoot=host.querySelector('#cl-evidence-mode-root');
+        if(s.evidenceMode==='cross')window.CERT_LAB_INTEGRATED_UI?.mount(modeRoot,s,{persist:save,toast});
+        else window.CERT_LAB_EVIDENCE_UI?.mount(modeRoot,s,{persist:save,toast});
       }
       if(s.tab==='assessment'&&window.CERT_LAB_TRANSFER_UI){
         window.CERT_LAB_TRANSFER_UI.mount(root.querySelector('#cl-transfer-root'),s,{persist:save,toast,openModule:id=>{const m=D.moduleById(id);if(!m)return;s.trackId=m.trackId;s.moduleId=id;s.tab='curriculum';save();render();}});
@@ -112,9 +122,9 @@
       }
     }
     const skillBridge=tr=>tr.id==='pmp'
-      ? '<section class="cl-skill-bridge"><div><strong>PMO × 秘書検定｜判断を、相手に伝える力へ</strong><p>決裁の整理に加え、顧客への一次応答と上司への報告を別の場面で練習する。</p></div>'+act('対人対応を1問試す','secretary-bridge','secondary')+'</section>'
+      ? '<section class="cl-skill-bridge"><div><strong>PMO × 秘書検定｜判断を、相手に伝える力へ</strong><p>決裁の整理に加え、顧客への一次応答と上司への報告を別の場面で練習する。</p></div>'+act('対人対応を1問試す','secretary-bridge','secondary')+act('一案件・三視点に挑戦','cross-case','primary')+'</section>'
       : tr.id==='secretary'
-      ? '<section class="cl-skill-bridge"><div><strong>秘書検定 × PMO｜気配りを、決裁の設計へ</strong><p>敬語や先回りだけで終わらせず、発生済み問題・リスク・決裁権限へ接続する。</p></div>'+act('PMO案件で試す','pmo-bridge','secondary')+'</section>'
+      ? '<section class="cl-skill-bridge"><div><strong>秘書検定 × PMO｜気配りを、決裁の設計へ</strong><p>敬語や先回りだけで終わらせず、発生済み問題・リスク・決裁権限へ接続する。</p></div>'+act('PMO案件で試す','pmo-bridge','secondary')+act('一案件・三視点に挑戦','cross-case','primary')+'</section>'
       : '';
     function today(tr,info){
       const plan=recommendNext();
@@ -156,10 +166,18 @@
       const m=D.moduleById(s.moduleId),saved=s.notes[m.id]||{},done=saved.checks||[];
       return `<div class="cl-two-column"><aside class="cl-module-list"><h3>成果物を選ぶ</h3>${tr.modules.map(x=>`<button type="button" class="cl-module-item ${s.moduleId===x.id?'selected':''}" data-cl-module="${x.id}"><span>▣</span><span><strong>${esc(x.title)}</strong><small>${s.notes[x.id]?.text?.trim()?'保存済み':s.drafts[x.id]?.trim()?'下書きあり':'未着手'}</small></span></button>`).join('')}</aside><article class="cl-card"><p class="cl-eyebrow">WORK PRODUCT / SELF REVIEW</p><h3>${esc(m.title)}の実務メモ</h3><p>${esc(m.task)}</p><p class="cl-muted">架空データまたは公開情報を使用してください。業務上の秘密・個人情報は入力しないでください。</p><label class="cl-input-label" for="clWorkText">成果物の下書き</label><textarea id="clWorkText" class="cl-textarea" rows="12" placeholder="${esc(m.template)}">${esc(s.drafts[m.id]??saved.text??'')}</textarea><div class="cl-checks"><strong>セルフレビュー（自動採点ではありません）</strong>${m.checks.map((v,i)=>`<label><input type="checkbox" data-cl-check="${i}" ${done.includes(i)?'checked':''}> ${esc(v)}</label>`).join('')}</div><div class="cl-actions">${act('この端末に保存','save-note','primary')}${act('記入の型をコピー','copy-template','ghost')}${act('Markdownを書き出す','download-note','ghost')}</div>${saved.at?`<p class="cl-muted">最終保存：${esc(new Date(saved.at).toLocaleString('ja-JP'))}</p>`:''}<p class="cl-source">参考資料：${source(m.source)}</p></article></div>`;
     }
+    function skillMapPanel(){
+       const M=D.competencyMap;if(!M)return '';
+       return '<details class="cl-skill-map"><summary>資格名ではなく「できること」から探す｜7つの実務能力</summary><div class="cl-skill-map-body"><p class="cl-muted">'+esc(M.interpretation)+'。熟達度や資格網羅率ではありません。</p><div class="cl-skill-grid">'+M.competencies.map(x=>'<article><h4>'+esc(x.name)+'</h4><p>'+esc(x.example)+'</p><small>確認する証拠：'+esc(x.evidence)+'</small><div class="cl-related-links">'+x.primary.map(id=>'<button type="button" data-cl-skill-track="'+esc(id)+'">'+esc(D.trackById(id)?.short||id)+' →</button>').join('')+'</div><details><summary>他の関連分野と限界</summary><p>'+x.related.map(id=>esc(D.trackById(id)?.short||id)).join('、')+'</p><p>'+esc(x.caveat)+'</p></details></article>').join('')+'</div></div></details>';
+    }
+    function secretaryOfficialAudit(){
+       const M=D.competencyMap;if(!M)return '';
+       return '<details class="cl-skill-map"><summary>秘書検定2級・公式審査基準16項目の照合（未収録も表示）</summary><div class="cl-skill-map-body"><p>編集上の対応表です。「一部触れる」は試験対策として十分という意味ではありません。<a href="'+esc(M.officialUrl)+'" target="_blank" rel="noopener noreferrer">2級審査基準原文PDF ↗</a></p><div class="cl-official-audit">'+M.secretaryAudit.map(x=>'<div><span class="cl-audit-status">'+esc(x.status)+'</span><strong>'+esc(x.domain)+'｜'+esc(x.subtopic)+'</strong><p>'+esc(x.note)+'</p></div>').join('')+'</div></div></details>';
+    }
     function scope(tr){
       const rows=tr.modules.map(m=>{const x=D.crosswalkFor(m.id);return `<article class="cl-scope-row"><div><strong>${esc(m.title)}</strong><p class="cl-muted">${esc(x?.note||'')}</p><span class="cl-chip">${esc(x?.relation||'未分類')}</span></div><div class="cl-related-links">${(x?.atlasChapters||[]).map(id=>`<button type="button" data-cl-chapter="${id}">${esc(atlasChapter(id)?.title||id)} →</button>`).join('')}</div></article>`}).join('');
       const gaps=(D.scopeGaps[tr.id]||[]).map(x=>`<li>${esc(x)}</li>`).join('');
-      return `<section class="cl-card"><p class="cl-eyebrow">COVERAGE / NOT A FULL EXAM PREP</p><h3>既存の43章を活かし、足りない範囲を見える化する</h3><p>下記は<strong>編集上の対応表</strong>であり、公式試験に対する網羅率ではありません。重複を避けて関連章へ移れます。</p><p class="cl-source">出題範囲の原典：${source(D.references[tr.id])}</p>${tr.id==='secretary'&&D.secretaryCoverage?`<div class="cl-official-areas"><h4>公式の5領域との関連</h4><div class="cl-official-area-grid">${D.secretaryCoverage.categories.map(cat=>`<div><small>${esc(cat.division)}</small><strong>${esc(cat.name)}</strong></div>`).join('')}</div><p class="cl-muted">この対応は編集上の分類で、公式問題や配点の網羅率は示しません。2級は選択と記述の両形式で出題されます。</p></div>`:''}</section><section class="cl-card"><h3>今後追加すべき分野（現時点の未収録）</h3><ul class="cl-gap-list">${gaps}</ul><p class="cl-muted">資格試験のシラバス全項目を照合した完成版ではありません。未収録の主な分野のみ示します。</p></section><section class="cl-card"><h3>既存Atlasとの関連</h3><div class="cl-scope-rows">${rows}</div></section>`;
+      return skillMapPanel()+(tr.id==='secretary'?secretaryOfficialAudit():'')+`<section class="cl-card"><p class="cl-eyebrow">COVERAGE / NOT A FULL EXAM PREP</p><h3>既存の43章を活かし、足りない範囲を見える化する</h3><p>下記は<strong>編集上の対応表</strong>であり、公式試験に対する網羅率ではありません。重複を避けて関連章へ移れます。</p><p class="cl-source">出題範囲の原典：${source(D.references[tr.id])}</p>${tr.id==='secretary'&&D.secretaryCoverage?`<div class="cl-official-areas"><h4>公式の5領域との関連</h4><div class="cl-official-area-grid">${D.secretaryCoverage.categories.map(cat=>`<div><small>${esc(cat.division)}</small><strong>${esc(cat.name)}</strong></div>`).join('')}</div><p class="cl-muted">この対応は編集上の分類で、公式問題や配点の網羅率は示しません。2級は選択と記述の両形式で出題されます。</p></div>`:''}</section><section class="cl-card"><h3>今後追加すべき分野（現時点の未収録）</h3><ul class="cl-gap-list">${gaps}</ul><p class="cl-muted">資格試験のシラバス全項目を照合した完成版ではありません。未収録の主な分野のみ示します。</p></section><section class="cl-card"><h3>既存Atlasとの関連</h3><div class="cl-scope-rows">${rows}</div></section>`;
     }
     function strategy(tr){
       return `<div class="cl-strategy"><section class="cl-card"><p class="cl-eyebrow">QUESTION THE ASSUMPTION</p><h3>資格を取らない選択肢も、同じ条件で比較する</h3><p>「合格すること」と「仕事の判断が変わること」は別。受験料、研修、維持費だけでなく、勉強の時間を実務演習に使う場合も比べます。</p><div class="cl-three"><div><strong>知識を獲得する</strong><span>試験範囲を教材として使う。受験しなくても可能。</span></div><div><strong>能力を証明する</strong><span>採用・上司・顧客が資格をどう評価するか、一次情報で確かめる。</span></div><div><strong>機会を得る</strong><span>応募や案件に必須条件か。歓迎条件と分ける。</span></div></div><h4>今回の投資方針</h4><div class="cl-decision">${[['learn','まず学ぶ。受験は未決定'],['exam','受験も検討する'],['practice','実務成果物を優先する']].map(([id,l])=>`<label><input type="radio" name="clDecision" value="${id}" ${s.certDecision===id?'checked':''}> ${l}</label>`).join('')}</div><p class="cl-warning">${esc(tr.caveat)}</p><p class="cl-source">受験制度：${source(D.references[tr.id])}</p><p class="cl-source">関連する解説：<a href="https://silovar-uk.github.io/myessays/#/essay/consultant-certification-why-proof-comes-after-work-2026" target="_blank" rel="noopener noreferrer">資格を取る前に、5年働いてください ↗</a></p></section>
@@ -181,6 +199,7 @@
       const t=event.target.closest('button');
       if(!t||!root.contains(t))return;
       rememberDraft();
+      if(t.dataset.clSkillTrack){const tr=D.trackById(t.dataset.clSkillTrack);if(!tr)return;s.trackId=tr.id;s.moduleId=s.lastModuleByTrack[tr.id]||tr.modules[0].id;s.tab='curriculum';s.quizId=null;s.revealId=null;save();render();return;}
       if(t.dataset.clTab){s.tab=t.dataset.clTab;s.revealId=null;if(s.tab!=='today')s.lastWorkingTab=s.tab;save();render();return;}
       if(t.dataset.clModule){s.moduleId=t.dataset.clModule;s.lastModuleByTrack[s.trackId]=s.moduleId;s.quizId=null;s.revealId=null;save();render();return;}
       if(t.dataset.clWeek){let a=s.weeklyDone,k=t.dataset.clWeek;s.weeklyDone=a.includes(k)?a.filter(x=>x!==k):[...a,k];save();render();return;}
@@ -231,6 +250,7 @@
         case 'next-lesson':s.tab='curriculum';s.moduleId=D.trackById(s.trackId).modules.find(m=>!lessonDone(m.id))?.id||s.moduleId;break;
         case 'due':s.tab='quiz';s.mode='review';s.quizId=null;s.revealId=null;break;
         case 'secretary-bridge': s.trackId='secretary';s.moduleId='sec-02';s.lastModuleByTrack.secretary='sec-02';s.practiceStartModuleId='sec-02';s.tab='practice';s.revealId=null;break;
+        case 'cross-case':s.tab='evidence';s.evidenceMode='cross';s.revealId=null;break;
         case 'pmo-bridge': s.trackId='pmp';s.moduleId='pmp-01';s.lastModuleByTrack.pmp='pmp-01';s.tab='evidence';s.revealId=null;break;
         case 'diagnostic':s.tab='quiz';s.mode='diagnostic';s.quizId=null;s.revealId=null;break;
         case 'diagnostic-reset':s.diagnostic={};s.diagnosticFeedback=null;s.mode='diagnostic';break;
