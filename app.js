@@ -219,6 +219,8 @@
     document.querySelectorAll('.nav-item[data-view]').forEach((button) => {
       button.classList.toggle('is-active', button.dataset.view === view);
     });
+    const more = document.getElementById('navMore');
+    if (more && ['diagnostic','weakness','map','lesson','practice','workspace','review'].includes(view)) more.open = true;
   }
 
   function stopTimer() {
@@ -402,79 +404,90 @@
     (renderers[activeView] || renderHome)();
   }
 
-  function renderHome() {
-    setBreadcrumb('ホーム', '学び方を選ぶ');
-    const next = getNextChapter();
-    const finance = getFinanceProgress();
-    const weakness = getWeaknessMap();
-    const urgent = [...weakness].sort((a, b) => a.score - b.score)[0];
-    const diagnostic = getDiagnosticResult();
-    const sessionLength = Number(state.profile.sessionLength || 30);
-    root.innerHTML = `
-      <section class="view-heading purpose-heading">
-        <div>
-          <p class="section-label">START WITH YOUR PURPOSE</p>
-          <h2>今日は、どんな使い方をする？</h2>
-          <p>教材の目次から入らない。今の目的に合わせて、学ぶ・使う・弱点をつぶす、の入口を選ぶ。</p>
-        </div>
-        <div class="header-meta"><span class="tag">1回 ${sessionLength}分</span><span class="status-pill focus">財務重点</span></div>
-      </section>
-
-      <section class="card card-pad" style="margin-bottom:18px"><p class="section-label">NEW / CERTIFICATION × PRACTICE</p><h3>資格の勉強を、仕事で使える力につなげる</h3><p>7領域・21の実務レッスン・${(window.CERT_LAB_DATA?.questions.length||0)+(window.CERT_LAB_DEEP?.items.length||0)}問。4択に加えて計算・資料読解・誤り訂正・記述と6段階の統合ケース。既存43章と連動する。</p><button class="button secondary" data-view="cert-lab">資格・実務ラボを開く →</button></section>
-
-      <section class="path-grid" aria-label="目的別の入口">
-        <article class="path-card start">
-          <div class="path-icon">◎</div>
-          <p class="eyebrow">GUIDED BEGINNER</p>
-          <h3>はじめる</h3>
-          <p>何から手をつけるか迷うとき。3分診断で、いま必要な最初の一章を決める。</p>
-          <ul><li>3分の基礎診断</li><li>今日の10分レッスン</li><li>用語をその場で確認</li></ul>
-          <button class="button primary" data-action="open-route" data-route="start">${diagnostic ? '診断結果から進める' : '3分診断を始める'} →</button>
-        </article>
-        <article class="path-card work">
-          <div class="path-icon">⌕</div>
-          <p class="eyebrow">JUST-IN-TIME WORKER</p>
-          <h3>仕事に使う</h3>
-          <p>明日の資料や会議のために。論点を検索し、次に見る数字と分析メモの型をすぐ取り出す。</p>
-          <ul><li>論点・用語で検索</li><li>次に見る数字</li><li>コピペ用の分析テンプレ</li></ul>
-          <button class="button secondary" data-action="open-route" data-route="work">実務ツールを開く →</button>
-        </article>
-        <article class="path-card improve">
-          <div class="path-icon">↻</div>
-          <p class="eyebrow">DELIBERATE IMPROVER</p>
-          <h3>弱点をつぶす</h3>
-          <p>分かったつもりを減らす。正誤、自信度、誤答タグから、次に戻るべき前提を見つける。</p>
-          <ul><li>弱点マップ</li><li>スペシャル問題</li><li>次の7日間の復習案</li></ul>
-          <button class="button ghost" data-action="open-route" data-route="weakness">弱点マップを見る →</button>
-        </article>
-      </section>
-
-      <section class="purpose-dashboard">
-        <article class="today-card compact-today">
-          <p class="eyebrow">TODAY'S NEXT MOVE</p>
-          <h3>${escapeHTML(diagnostic?.label || `Chapter ${String(next.no).padStart(2, '0')}｜${next.title}`)}</h3>
-          <p>${escapeHTML(diagnostic?.message || next.outcome)}</p>
-          <div class="today-meta"><span class="tag">${diagnostic ? '10分から' : `${next.minutes}分`}</span><span class="tag">${finance.completed} / ${finance.total}章通過</span></div>
-          <div class="today-actions"><button class="button primary" data-action="open-chapter" data-chapter-id="${diagnostic?.chapterId || next.id}">最初のレッスンを開く →</button><button class="button ghost" data-action="open-practice">1問だけ解く</button></div>
-        </article>
-        <aside class="card quick-signal">
-          <p class="section-label">RIGHT NOW</p>
-          <h3>今、戻ると効くところ</h3>
-          <div class="signal-main"><b>${escapeHTML(urgent.label)}</b><span>${urgent.hasEvidence ? `暫定の復習目安 ${urgent.score}%` : 'まだ回答記録がありません'}</span></div>
-          <div class="skill-bar large"><i style="width:${urgent.score}%"></i></div>
-          <p>${escapeHTML(urgent.next)}</p>
-          <button class="button ghost small" data-action="open-route" data-route="weakness">理由と次の一手を見る →</button>
-        </aside>
-      </section>
-
-      <section class="dashboard-row" aria-label="学習状況">
-        <article class="card metric-card"><div class="metric-label">完了した章</div><div class="metric-value"><b>${state.progress.completedChapters.length}</b><span>/ ${DATA.chapters.length}章</span></div><div class="metric-footer">読了ではなく、チェックと成果物まで残した章。</div></article>
-        <article class="card metric-card"><div class="metric-label">自信ありの誤答</div><div class="metric-value"><b>${weakness.reduce((sum, item) => sum + item.highConfidenceMisses, 0)}</b><span>件</span></div><div class="metric-footer">ここがいちばん伸びしろ。復習の優先順位にする。</div></article>
-        <article class="card metric-card"><div class="metric-label">実務成果物</div><div class="metric-value"><b>${state.artifacts.filter((artifact) => artifact.status === '完成').length}</b><span>件完成</span></div><div class="metric-footer">分析メモとテンプレを、仕事へ持ち出せる形で残す。</div></article>
-        <article class="card metric-card"><div class="metric-label">次のスペシャル問題</div><div class="metric-value"><b>在庫</b><span>の増加を読む</span></div><div class="metric-footer">B/Sの数字から、確認すべき問いを三つつくる。</div></article>
-      </section>`;
-    bindCommonEvents();
+  function openLabTab(tab){
+  if(!state.certLab||typeof state.certLab!=='object')state.certLab={};
+  if(tab&&['today','curriculum','quiz','practice','assessment','evidence','work','scope','strategy'].includes(tab)){
+    state.certLab.tab=tab;
+    if(tab!=='today')state.certLab.lastWorkingTab=tab;
   }
+  persist();
+  activeView='cert-lab';
+  history.replaceState(null,'','#/cert-lab');
+  render();
+}
+
+  function renderHome(){
+  setBreadcrumb('今日','続きから始める');
+  const next=getNextChapter();
+  const lab=state.certLab&&typeof state.certLab==='object'?state.certLab:{};
+  const preferred=lab.lastWorkingTab||lab.tab;
+  const tabNames={curriculum:'教材',quiz:'クイズ',practice:'実戦演習',assessment:'実力検証',evidence:'判断メモ',work:'成果物',scope:'学習範囲',strategy:'資格の判断'};
+  const hasLabHistory=Object.prototype.hasOwnProperty.call(tabNames,preferred);
+  const module=window.CERT_LAB_DATA?.moduleById?.(lab.moduleId);
+  const evidenceCase=window.CERT_LAB_EVIDENCE?.byId?.(lab.evidencePilot?.activeCase);
+  const title=hasLabHistory?
+    (preferred==='evidence'?(evidenceCase?.title||'PMOの判断メモ'):
+      preferred==='assessment'?'初見の事例で力を確かめる':
+      preferred==='practice'?'別形式の実戦問題':
+      ['curriculum','work','quiz'].includes(preferred)?(module?.title||tabNames[preferred]):tabNames[preferred]):
+    `Chapter ${String(next.no).padStart(2,'0')}｜${next.title}`;
+  const resumeHint=hasLabHistory?`${tabNames[preferred]}の画面から再開。前回の回答・下書きは保持されています。`:'まず一つの内容を理解するところから始めます。';
+  const hasStarted=hasLabHistory||(state.progress.completedChapters||[]).length>0||(state.attempts||[]).length>0;
+  const completedChapters=(state.progress.completedChapters||[]).length;
+  const labAnswers=(lab.attempts||[]).length;
+  const savedEvidence=Object.values(lab.evidencePilot?.submissions||{}).filter(Boolean).length;
+  root.innerHTML=`
+    <div class="ux-today">
+      <header class="ux-today-heading">
+        <div><p class="section-label">YOUR NEXT MOVE</p><h2>今日は、ここから。</h2><p>何を学ぶか探す前に、まず一歩進める。</p></div>
+        <span class="ux-session-label">目安 ${escapeHTML(state.profile.sessionLength||'30')} 分</span>
+      </header>
+      <section class="ux-resume card" aria-label="${hasStarted?'前回の続き':'最初の一歩'}">
+        <div class="ux-resume-copy">
+          <p class="section-label">${hasStarted?'CONTINUE WHERE YOU LEFT OFF':'FIRST STEP'}</p>
+          <h3>${escapeHTML(title)}</h3><p>${escapeHTML(resumeHint)}</p>
+          <button class="button primary ux-start-button" type="button" data-action="${hasLabHistory?'resume-lab':'resume-lesson'}" ${hasLabHistory?'data-tab="'+escapeHTML(preferred)+'"':''}>
+            ${hasStarted?'続きから始める':'最初の学習を始める'} <span aria-hidden="true">→</span>
+          </button>
+        </div><div class="ux-resume-side" aria-hidden="true"><span>01</span><small>START</small></div>
+      </section>
+      <section class="ux-purpose-section" aria-labelledby="ux-purpose-title">
+        <div class="ux-section-header"><div><p class="section-label">CHOOSE YOUR GOAL</p><h3 id="ux-purpose-title">今の目的から始める</h3></div><p>入口は4つ。必要な教材はその先で選べます。</p></div>
+        <div class="ux-purpose-grid">
+          <button type="button" data-action="start-purpose" data-purpose="numbers" class="ux-purpose-item"><span class="ux-purpose-icon" aria-hidden="true">▤</span><strong>数字を読みたい</strong><small>財務数値を分析する</small><span class="ux-purpose-arrow" aria-hidden="true">↗</span></button>
+          <button type="button" data-action="start-purpose" data-purpose="decision" class="ux-purpose-item"><span class="ux-purpose-icon" aria-hidden="true">◇</span><strong>判断を整理したい</strong><small>PMO判断メモを作る</small><span class="ux-purpose-arrow" aria-hidden="true">↗</span></button>
+          <button type="button" data-action="start-purpose" data-purpose="learn" class="ux-purpose-item"><span class="ux-purpose-icon" aria-hidden="true">▤</span><strong>知識を身につけたい</strong><small>教材を理解する</small><span class="ux-purpose-arrow" aria-hidden="true">↗</span></button>
+          <button type="button" data-action="start-purpose" data-purpose="check" class="ux-purpose-item"><span class="ux-purpose-icon" aria-hidden="true">◎</span><strong>実力を確かめたい</strong><small>別事例で試す</small><span class="ux-purpose-arrow" aria-hidden="true">↗</span></button>
+        </div>
+      </section>
+      <details class="ux-today-more">
+        <summary>学習状況とその他の入口</summary>
+        <div class="ux-today-more-body">
+          <div class="ux-progress-summary"><div><strong>${completedChapters}</strong><small>学習済みの章</small></div><div><strong>${labAnswers}</strong><small>ラボの回答記録</small></div><div><strong>${savedEvidence}</strong><small>判断メモの初回提出</small></div></div>
+          <p>これらは活動の記録であり、資格の合格可能性や実務能力の判定ではありません。</p>
+          <div class="ux-more-links">
+            <button class="button ghost small" type="button" data-view="diagnostic">基礎診断</button>
+            <button class="button ghost small" type="button" data-view="weakness">弱点マップ</button>
+            <button class="button ghost small" type="button" data-view="map">学習マップ</button>
+            <button class="button ghost small" type="button" data-view="work">用語・論点を探す</button>
+            <button class="button ghost small" type="button" data-view="library">成果物を探す</button>
+          </div>
+        </div>
+      </details>
+    </div>`;
+  bindCommonEvents();
+  root.querySelector('[data-action="resume-lab"]')?.addEventListener('click',e=>openLabTab(e.currentTarget.dataset.tab));
+  root.querySelector('[data-action="resume-lesson"]')?.addEventListener('click',()=>openChapter(next.id));
+  root.querySelectorAll('[data-action="start-purpose"]').forEach(button=>button.addEventListener('click',()=>{
+    switch(button.dataset.purpose){
+      case 'numbers':activeView='workspace';render();return;
+      case 'decision':openLabTab('evidence');return;
+      case 'learn':openLabTab('curriculum');return;
+      case 'check':openLabTab('assessment');return;
+      default:return;
+    }
+  }));
+}
 
   function renderDiagnostic() {
     setBreadcrumb('はじめる', '3分診断');
