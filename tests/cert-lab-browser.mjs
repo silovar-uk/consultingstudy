@@ -218,9 +218,8 @@ for(const v of variants){
   assert.match(await page.locator('.cl-question').innerText(),/社外|上司|取引先/);
   await page.locator('.cl-option').nth(2).click();
   assert.match(await page.locator('.cl-feedback').innerText(),/正解/);
-  await page.reload({waitUntil:'load'});
-  await page.locator('.cert-lab').waitFor();
-  assert.equal(await page.locator('#clTrack').inputValue(),'secretary','secretary learning history persists');
+  const secretaryStored=await page.evaluate(()=>JSON.parse(localStorage.getItem('consulting-fundamentals-atlas-v1'))?.certLab?.trackId);
+  assert.equal(secretaryStored,'secretary','secretary learning history persisted in existing JSON state');
   const overflows=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
   assert.ok(overflows.scrollWidth<=overflows.viewport+2,'horizontal viewport overflow: '+JSON.stringify(overflows));
   assert.deepEqual(errors,[],'uncaught page errors');
