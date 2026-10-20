@@ -179,6 +179,11 @@ for(const v of variants){
   assert.equal(await page.locator('[data-ec-field="facts"]').inputValue(),second.facts);
   await goToday(page);
   await page.locator('[data-purpose="numbers"]').click();
+  assert.equal(new URL(page.url()).hash,'#/workspace','goal-based navigation has a navigable URL');
+  assert.match(await page.locator('#breadcrumbs').innerText(),/財務|ワークスペース/);
+  await page.goBack();
+  await page.locator('.ux-today').waitFor();
+  await page.goForward();
   assert.match(await page.locator('#breadcrumbs').innerText(),/財務|ワークスペース/);
   await goToday(page);
   await page.locator('[data-purpose="decision"]').click();
