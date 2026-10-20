@@ -195,6 +195,32 @@ for(const v of variants){
   await goToday(page);
   await page.locator('[data-purpose="check"]').click();
   await page.locator('#cl-transfer-root').waitFor();
+  // Secretary certification × PMO cross-skill route: no extra main tab
+  await page.locator('#clTrack').selectOption('pmp');
+  await page.locator('.cert-lab [data-cl-tab="today"]').click();
+  await page.getByRole('button',{name:'対人対応を1問試す'}).click();
+  await page.locator('.cl-deep-task').waitFor();
+  assert.equal(await page.locator('#clTrack').inputValue(),'secretary');
+  assert.match(await page.locator('.cl-deep-task').innerText(),/顧客への一次応答/);
+  await page.locator('#dpText').fill('顧客の被害範囲と発生時刻を聴いて復唱する。原因と復旧時刻は未確認と伝え、責任者に連絡して次の報告期限を決める。');
+  await page.locator('[data-dp-action="submit"]').click();
+  assert.match(await page.locator('.cl-deep-feedback').innerText(),/セルフレビュー|模範|見本|自己点検/);
+  await page.locator('.cert-lab [data-cl-tab="today"]').click();
+  await page.getByRole('button',{name:'PMO案件で試す'}).waitFor();
+  await openLabExtras(page);
+  await page.getByRole('button',{name:'範囲と対応'}).click();
+  // Current track remains secretary until we deliberately switch back
+  assert.match(await page.locator('.cl-official-areas').innerText(),/必要とされる資質/);
+  assert.match(await page.locator('.cl-official-areas').innerText(),/マナー・接遇/);
+  assert.equal(await page.locator('.cl-official-area-grid>div').count(),5);
+  await page.getByRole('button',{name:'クイズ',exact:true}).click();
+  await page.locator('.cl-question').waitFor();
+  assert.match(await page.locator('.cl-question').innerText(),/社外|上司|取引先/);
+  await page.locator('.cl-option').nth(2).click();
+  assert.match(await page.locator('.cl-feedback').innerText(),/正解/);
+  await page.reload({waitUntil:'load'});
+  await page.locator('.cert-lab').waitFor();
+  assert.equal(await page.locator('#clTrack').inputValue(),'secretary','secretary learning history persists');
   const overflows=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
   assert.ok(overflows.scrollWidth<=overflows.viewport+2,'horizontal viewport overflow: '+JSON.stringify(overflows));
   assert.deepEqual(errors,[],'uncaught page errors');
