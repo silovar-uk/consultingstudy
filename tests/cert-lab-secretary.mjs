@@ -34,7 +34,7 @@ for(const m of S.modules){
  assert.equal(D.moduleById(m.id).trackId,'secretary');
  assert.equal(m.concepts.length,3);
  assert.ok(D.crosswalkFor(m.id).atlasChapters.every(id=>ctx.window.ATLAS_DATA.chapters.some(x=>x.id===id)));
- assert.ok(m.source.url.startsWith('https://'));
+ assert.ok(D.moduleById(m.id).source.url.startsWith('https://'));
 }
 for(const x of DB.trackDrills('secretary')){
  assert.equal(DB.byId(x.id).id,x.id);
