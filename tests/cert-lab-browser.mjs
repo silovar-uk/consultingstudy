@@ -113,6 +113,48 @@ for(const v of variants){
   await page.locator('input[name="tfChoice"][value="3"]').check();
   await page.locator('[data-tf-action="submit"]').click();
   assert.match(await page.locator('#cl-transfer-root').innerText(),/初見評価は、後日に解く/);
+  // Authentic case: frozen first submission, external review worksheet and next-case transfer
+  await page.getByRole('button',{name:'判断メモ',exact:true}).click();
+  await page.locator('#cl-evidence-root .cl-ec-editor').waitFor();
+  assert.ok(await page.locator('[data-ec-case="ticket-sync-v1"]').isDisabled(),'case B locked before case A');
+  assert.equal(await page.locator('.cl-ec-anchor').count(),0,'reference answer not visible before first submission');
+  await page.locator('[data-ec-action="submit"]').click();
+  assert.match(await page.locator('[role="alert"]').last().innerText(),/不足している欄/);
+  const first={
+    facts:'権利台帳M1により40本中12本の許可は未完了。営業担当の40本約束は契約で未確認。',
+    classification:'12本未承認は期限経過済みの問題。翌日の変換遅延は未発生のリスクである。',
+    options:'Aは許諾済み28本の段階公開、Bは延期。スポンサー条件が許すならAを検討する。',
+    governance:'広報責任者が木曜17時までに判断、権利担当と営業担当が資料を集める。',
+    verification:'契約原本と権利台帳を確認し、負荷試験の結果次第では予定公開を延期する。'
+  };
+  for(const [name,value] of Object.entries(first))await page.locator('[data-ec-field="'+name+'"]').fill(value);
+  await page.getByRole('button',{name:'下書きをこの端末に保存'}).click();
+  await page.reload({waitUntil:'load'});
+  await page.locator('#cl-evidence-root .cl-ec-editor').waitFor();
+  assert.equal(await page.locator('[data-ec-field="facts"]').inputValue(),first.facts,'evidence draft survives reload');
+  await page.locator('[data-ec-action="submit"]').click();
+  assert.match(await page.locator('.cl-ec-submitted').innerText(),/初回提出を保存しました/);
+  assert.ok(await page.locator('[data-ec-case="ticket-sync-v1"]').isEnabled());
+  assert.ok(await page.locator('[data-ec-field="facts"]').getAttribute('readonly')!==null,'frozen initial response');
+  assert.match(await page.locator('.cl-ec-review').innerText(),/参考例/);
+  assert.match(await page.locator('.cl-ec-review').innerText(),/評価依頼票/);
+  await page.locator('[data-ec-case="ticket-sync-v1"]').click();
+  assert.equal(await page.locator('.cl-ec-anchor').count(),0,'second reference reasoning not shown before submission');
+  const second={
+    facts:'T1の記録には12,000席中270席の不整合がある。一部なので大丈夫という販売担当の意見は未検証。',
+    classification:'在庫不整合はすでに起きた問題。一方API上限への到達は未発生のリスクである。',
+    options:'案Aは一致が確認できた席だけ発売、案Bは全面延期。安全な制御ができる場合だけ案A。',
+    governance:'チケット責任者が金曜18時に決裁。情報システム担当が在庫照合を担う。',
+    verification:'再照合ログ、限定発売の技術条件、API負荷試験を17時までに確認する。'
+  };
+  for(const [name,value] of Object.entries(second))await page.locator('[data-ec-field="'+name+'"]').fill(value);
+  await page.locator('[data-ec-action="submit"]').click();
+  await page.locator('.cl-ec-comparison').waitFor();
+  assert.match(await page.locator('.cl-ec-comparison').innerText(),/難易度は等化されていません/);
+  await page.reload({waitUntil:'load'});
+  await page.locator('.cl-ec-comparison').waitFor();
+  assert.equal(await page.locator('[data-ec-field="facts"]').inputValue(),second.facts);
+  assert.ok(await page.locator('[data-ec-field="facts"]').getAttribute('readonly')!==null);
   const overflows=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
   assert.ok(overflows.scrollWidth<=overflows.viewport+2,'horizontal viewport overflow: '+JSON.stringify(overflows));
   assert.deepEqual(errors,[],'uncaught page errors');
