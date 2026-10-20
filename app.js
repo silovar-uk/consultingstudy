@@ -431,7 +431,10 @@
 
   function renderHome(){
   setBreadcrumb('今日','続きから始める');
-  const next=getNextChapter();
+  const proposedNext=getNextChapter();
+  const hasAtlasWork=(state.progress.completedChapters||[]).length>0||(state.attempts||[]).length>0;
+  const lastChapter=hasAtlasWork?DATA.chapters.find(c=>c.id===state.progress.lastViewedChapter):null;
+  const next=lastChapter||proposedNext;
   const lab=state.certLab&&typeof state.certLab==='object'?state.certLab:{};
   const preferred=lab.lastWorkingTab||lab.tab;
   const tabNames={curriculum:'教材',quiz:'クイズ',practice:'実戦演習',assessment:'実力検証',evidence:'判断メモ',work:'成果物',scope:'学習範囲',strategy:'資格の判断'};
