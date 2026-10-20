@@ -1,5 +1,21 @@
 # Consulting Fundamentals Atlas
 
+## 2026年10月20日｜PMOの実務判断を証拠で確認する
+
+[学習サイト](https://silovar-uk.github.io/consultingstudy/#/cert-lab) → **「判断メモ」** タブ。
+
+- **能力モデル**：事実と発言、発生済みの問題と将来リスク、代替案、決裁権限、必要な追加データを区別して意思決定メモを作る。
+- **原資料付きの2案件**：スポーツ映像の権利許諾／チケット在庫のデータ不整合。どちらも実在企業と無関係の架空事例。
+- 初回提出を端末内に固定し、提出後にのみ具体的な参考例を示す。B案件はA提出後に開放。初回提出の自動採点や成績上昇率の表示は行わない。
+- 5観点の評価者用ルーブリック（0／1／2と具体的根拠欄、重大な見落とし）を持つMarkdown評価票を保存・コピーできる。**人間による評価が終わったわけではない**。
+- `state.certLab.evidencePilot` を新設し、既存90問と学習履歴・成果物に干渉しない設計。
+- [一次研究・反証・次の調査計画・四代替案の評価](docs/evidence-centered-pmo-pilot-20261020.md)／[独立査読と実機受入の未完了課題](https://github.com/silovar-uk/consultingstudy/issues/6)
+- 自動テスト：`node tests/cert-lab-evidence.mjs`、`node tests/cert-lab-browser.mjs`。実機iPhone Safari・VoiceOverや独立評価は未実施。
+
+最も重要な変更は、「機能を追加した」ではなく、**どんな実務能力を観測したいのかを先に決め、証拠の残る課題を作った**こと。2事例の正答差のみでは能力向上の証明にはならない。
+
+---
+
 ## 2026年10月20日｜学習成果を確かめる3段階パイロット
 
 公開入口：[資格・実務ラボ](https://silovar-uk.github.io/consultingstudy/#/cert-lab) → **「実力検証」** タブ
