@@ -6,6 +6,9 @@ on:
       - 'cert-lab.js'
       - 'cert-lab-data.js'
       - 'cert-lab-crosswalk.js'
+      - 'cert-lab-secretary.js'
+      - 'cert-lab-secretary-deep.js'
+      - 'tests/cert-lab-secretary.mjs'
       - 'cert-lab-deep-data.js'
       - 'cert-lab-deep-ui.js'
       - 'tests/cert-lab-deep.mjs'
@@ -37,3 +40,4 @@ jobs:
           node tests/cert-lab-deep.mjs
           node tests/cert-lab-transfer.mjs
           node tests/cert-lab-evidence.mjs
+          node tests/cert-lab-secretary.mjs
