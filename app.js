@@ -8,7 +8,12 @@
   const appShell = document.getElementById('appShell');
   const breadcrumbs = document.getElementById('breadcrumbs');
   const toastRegion = document.getElementById('toastRegion');
-  let activeView = window.location.hash === '#/cert-lab' ? 'cert-lab' : 'home';
+  const ROUTE_VIEWS=new Set(['home','cert-lab','diagnostic','work','weakness','map','lesson','practice','workspace','library','review','settings']);
+  function viewFromHash(){
+    const route=location.hash.startsWith('#/')?location.hash.slice(2):'home';
+    return ROUTE_VIEWS.has(route)?route:'home';
+  }
+  let activeView=viewFromHash();
   let activeQuestionId = 'finance-pl-001';
   let activeWorkspaceTab = 'pl';
   let activeAnnotation = 'observation';
@@ -404,6 +409,13 @@
     (renderers[activeView] || renderHome)();
   }
 
+  function navigateView(view){
+    if(!ROUTE_VIEWS.has(view))return;
+    const target=view==='home'?location.pathname+location.search:'#/'+view;
+    const same=view==='home'?!location.hash:location.hash==='#/'+view;
+    if(!same)history.pushState({view},'',target);
+    activeView=view;render();
+  }
   function openLabTab(tab){
   if(!state.certLab||typeof state.certLab!=='object')state.certLab={};
   if(tab&&['today','curriculum','quiz','practice','assessment','evidence','work','scope','strategy'].includes(tab)){
@@ -412,7 +424,7 @@
   }
   persist();
   activeView='cert-lab';
-  history.replaceState(null,'','#/cert-lab');
+  if(location.hash!=='#/cert-lab')history.pushState({view:'cert-lab'},'','#/cert-lab');
   render();
 }
 
@@ -480,7 +492,7 @@
   root.querySelector('[data-action="resume-lesson"]')?.addEventListener('click',()=>openChapter(next.id));
   root.querySelectorAll('[data-action="start-purpose"]').forEach(button=>button.addEventListener('click',()=>{
     switch(button.dataset.purpose){
-      case 'numbers':activeView='workspace';render();return;
+      case 'numbers':navigateView('workspace');return;
       case 'decision':openLabTab('evidence');return;
       case 'learn':openLabTab('curriculum');return;
       case 'check':openLabTab('assessment');return;
@@ -922,7 +934,7 @@
   }
 
   function bindCommonEvents() {
-    root.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; if (activeView === 'cert-lab') history.replaceState(null, '', '#/cert-lab'); render(); }));
+    root.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => navigateView(button.dataset.view)));
     root.querySelectorAll('[data-action="open-chapter"]').forEach((button) => button.addEventListener('click', () => openChapter(button.dataset.chapterId)));
     root.querySelectorAll('[data-action="open-practice"]').forEach((button) => button.addEventListener('click', () => { activeView = 'practice'; render(); }));
     root.querySelectorAll('[data-action="open-route"]').forEach((button) => button.addEventListener('click', () => {
@@ -1100,7 +1112,7 @@
   }
 
   function setupGlobalEvents() {
-    document.querySelectorAll('.nav-item[data-view]').forEach((button) => button.addEventListener('click', () => { activeView = button.dataset.view; if (activeView === 'cert-lab') history.replaceState(null, '', '#/cert-lab'); else if (location.hash === '#/cert-lab') history.replaceState(null, '', location.pathname + location.search); render(); }));
+    document.querySelectorAll('.nav-item[data-view]').forEach((button) => button.addEventListener('click', () => navigateView(button.dataset.view)));
     document.getElementById('menuButton').addEventListener('click', () => {
       const open = appShell.classList.toggle('nav-open');
       document.getElementById('menuButton').setAttribute('aria-expanded', String(open));
@@ -1117,6 +1129,20 @@
     }));
   }
 
+  const restoreViewFromUrl=()=>{
+    const next=viewFromHash();
+    if(next===activeView)return;
+    activeView=next;render();
+  };
+  window.addEventListener('popstate',restoreViewFromUrl);
+  window.addEventListener('hashchange',restoreViewFromUrl);
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||!appShell.classList.contains('nav-open'))return;
+    appShell.classList.remove('nav-open');
+    const menu=document.getElementById('menuButton');
+    menu?.setAttribute('aria-expanded','false');
+    menu?.focus();
+  });
   const savedTheme = localStorage.getItem(THEME_KEY) || 'system';
   applyTheme(savedTheme);
   updateProfileUI();
