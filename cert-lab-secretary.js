@@ -57,5 +57,5 @@ D.secretaryCoverage={basis:'公式5領域との編集上の対応。2級の全�
 {name:'マナー・接遇',division:'実技',modules:['sec-02']},
 {name:'技能',division:'実技',modules:['sec-03']}
 ]};
-D.curriculumAudit.updatedChoices=Object.keys(D.crosswalk).length;
+D.curriculumAudit.relatedModules=Object.keys(D.crosswalk).length;
 })();
