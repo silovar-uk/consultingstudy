@@ -90,7 +90,7 @@
   if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
  return {kind:'work',moduleId:selected.id,title:'一つ前の仕事を、よりよく説明する',detail:'この領域の講義と問題は一巡しました。以前の成果物を確認し、改善してください。',button:'成果物を見直す'};
 }
-    const tabs=[['today','今日'],['curriculum','教材'],['practice','実戦演習'],['work','成果物']];
+    const tabs=[['today','学習プラン'],['curriculum','教材'],['practice','実戦演習'],['work','成果物']];
     const extraTabs=[['quiz','クイズ'],['assessment','実力検証'],['evidence','判断メモ'],['scope','範囲と対応'],['strategy','資格の判断']];
     function render(){
       const tr=D.trackById(s.trackId), info=getStats(s,tr.id);
