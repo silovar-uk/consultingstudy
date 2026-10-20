@@ -5,20 +5,20 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const ctx=vm.createContext({window:{},console,setTimeout,clearTimeout});
 const file=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
-for(const name of ['data.js','cert-lab-data.js','cert-lab-crosswalk.js','cert-lab.js']){
+for(const name of ['data.js','cert-lab-data.js','cert-lab-crosswalk.js','cert-lab-secretary.js','cert-lab.js']){
   new Function(file(name));
   vm.runInContext(file(name),ctx,{filename:name});
 }
 const D=ctx.window.CERT_LAB_DATA, legacy=ctx.window.ATLAS_DATA;
 assert.equal(legacy.chapters.length,43);
-assert.equal(D.tracks.length,7);
-assert.equal(D.modules.length,21);
-assert.equal(D.questions.length,63);
-assert.equal(new Set(D.modules.map(x=>x.id)).size,21);
-assert.equal(new Set(D.questions.map(x=>x.id)).size,63);
-assert.equal(Object.keys(D.crosswalk).length,21);
+assert.equal(D.tracks.length,8);
+assert.equal(D.modules.length,24);
+assert.equal(D.questions.length,72);
+assert.equal(new Set(D.modules.map(x=>x.id)).size,24);
+assert.equal(new Set(D.questions.map(x=>x.id)).size,72);
+assert.equal(Object.keys(D.crosswalk).length,24);
 assert.equal(D.curriculumAudit.applicationCases,21);
-assert.equal(D.curriculumAudit.updatedChoices,21);
+assert.equal(D.curriculumAudit.updatedChoices,24);
 for(const m of D.modules){
   assert.equal(D.questionsFor(m.id).length,3,'3 original/application questions per module: '+m.id);
   const link=D.crosswalkFor(m.id);
@@ -108,14 +108,14 @@ click({clTab:'today'});
 click({clWeek:'bookkeeping:0'});
 assert.ok(state.certLab.weeklyDone.includes('bookkeeping:0'));
 click({clAction:'diagnostic'});
-assert.match(root.innerHTML,/OF 7/);
+assert.match(root.innerHTML,/OF 8/);
 for(const tr of D.tracks){
   const q=D.questions.find(x=>D.moduleById(x.moduleId).trackId===tr.id);
   click({clDiagnosticChoice:String(q.answer),id:tr.id});
   assert.match(root.innerHTML,/DIAGNOSTIC EXPLANATION/);
   click({clAction:'diagnostic-next'});
 }
-assert.match(root.innerHTML,/7問中7問正解/);
+assert.match(root.innerHTML,/8問中8問正解/);
 click({clAction:'all-quiz'});
 click({clTab:'curriculum'});
 root.onchange({target:{id:'clTrack',value:'pmp'}});
@@ -137,4 +137,4 @@ ctx.window.CERT_LAB.mount(legacyRoot,oldState,{persist:()=>{},atlasChapters:lega
 assert.equal(oldState.certLab.attempts.length,1);
 assert.equal(oldState.certLab.notes['pmp-01'].text,'従来の成果物');
 assert.ok(oldState.certLab.completed.includes('pmp-01'));
-console.log('PASS: 43 Atlas chapters ↔ 21 modules; 63 questions; answer/review/confidence; drafts; 7-question diagnostic; old state');
+console.log('PASS: 43 Atlas chapters ↔ 24 modules; 72 questions; answer/review/confidence; drafts; 8-question diagnostic; old state');
