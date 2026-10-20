@@ -34,6 +34,7 @@
   function mount(root,state,api={}) {
     if(!state.certLab||typeof state.certLab!=='object') state.certLab={};
     const s=state.certLab;
+    if(!s.lastWorkingTab&&s.tab&&s.tab!=='today')s.lastWorkingTab=s.tab;
     if(!D.trackById(s.trackId))s.trackId=({finance:'bookkeeping',materials:'statistics',business:'diagnosis',consulting:'pmp'}[state.profile?.goal]||'pmp');
     s.tab=s.tab||'today';
     s.moduleId=D.moduleById(s.moduleId)?.trackId===s.trackId?s.moduleId:D.trackById(s.trackId).modules[0].id;
@@ -89,11 +90,12 @@
   if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
  return {kind:'work',moduleId:selected.id,title:'一つ前の仕事を、よりよく説明する',detail:'この領域の講義と問題は一巡しました。以前の成果物を確認し、改善してください。',button:'成果物を見直す'};
 }
-    const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['practice','実戦演習'],['assessment','実力検証'],['evidence','判断メモ'],['work','成果物'],['scope','範囲と対応'],['strategy','資格の判断']];
+    const tabs=[['today','今日'],['curriculum','教材'],['practice','実戦演習'],['work','成果物']];
+    const extraTabs=[['quiz','クイズ'],['assessment','実力検証'],['evidence','判断メモ'],['scope','範囲と対応'],['strategy','資格の判断']];
     function render(){
       const tr=D.trackById(s.trackId), info=getStats(s,tr.id);
       const header=`<section class="cl-heading"><div><p class="cl-eyebrow">CONSULTING STUDY / SKILL × CERTIFICATION</p><h2>資格・実務ラボ</h2><p>資格に受かる前に、仕事で使えるようになる。読む → 解く → つくる → 復習する。</p></div><div class="cl-select-wrap"><label for="clTrack">学ぶ領域</label><select id="clTrack">${D.tracks.map(t=>`<option value="${t.id}" ${s.trackId===t.id?'selected':''}>${esc(t.short)}｜${esc(t.name)}</option>`).join('')}</select></div></section>
-      <div class="cl-switcher" role="navigation" aria-label="資格学習メニュー">${tabs.map(([id,label])=>`<button type="button" class="cl-tab ${s.tab===id?'active':''}" data-cl-tab="${id}" ${s.tab===id?'aria-current="page"':''}>${label}${id==='quiz'&&info.due?` <span class="cl-count">${info.due}</span>`:''}</button>`).join('')}</div>`;
+      <nav class="cl-switcher" aria-label="主な学習操作">${tabs.map(([id,label])=>`<button type="button" class="cl-tab ${s.tab===id?'active':''}" data-cl-tab="${id}" ${s.tab===id?'aria-current="page"':''}>${label}</button>`).join('')}</nav><details class="cl-more-tools" ${extraTabs.some(([id])=>id===s.tab)?'open':''}><summary>その他の学習機能 ${extraTabs.some(([id])=>id===s.tab)?'・'+esc(extraTabs.find(([id])=>id===s.tab)?.[1]||''):''}</summary><div class="cl-extra-tabs" role="navigation" aria-label="追加の学習機能">${extraTabs.map(([id,label])=>`<button type="button" class="cl-tab ${s.tab===id?'active':''}" data-cl-tab="${id}" ${s.tab===id?'aria-current="page"':''}>${label}${id==='quiz'&&info.due?` <span class="cl-count">${info.due}</span>`:''}</button>`).join('')}</div></details>`;
       root.innerHTML=`<div class="cert-lab">${header}<div id="cl-panel" class="cl-panel">${s.tab==='today'?today(tr,info):s.tab==='curriculum'?curriculum(tr):s.tab==='quiz'?quiz(tr):s.tab==='practice'?'<div id="cl-deep-root"></div>':s.tab==='assessment'?'<div id="cl-transfer-root"></div>':s.tab==='evidence'?'<div id="cl-evidence-root"></div>':s.tab==='work'?work(tr):s.tab==='scope'?scope(tr):strategy(tr)}</div><footer class="cl-footnote">問題とケースは本サイト作成の独自教材です。公式の模擬試験・合格判定ではありません。学習ログはこのブラウザに保存され、既存の「設定・データ」からJSONでバックアップできます。最終更新：2026年10月20日。</footer></div>`;
       root.onclick=onClick;
       root.onchange=onChange;
@@ -173,7 +175,7 @@
       const t=event.target.closest('button');
       if(!t||!root.contains(t))return;
       rememberDraft();
-      if(t.dataset.clTab){s.tab=t.dataset.clTab;s.revealId=null;save();render();return;}
+      if(t.dataset.clTab){s.tab=t.dataset.clTab;s.revealId=null;if(s.tab!=='today')s.lastWorkingTab=s.tab;save();render();return;}
       if(t.dataset.clModule){s.moduleId=t.dataset.clModule;s.lastModuleByTrack[s.trackId]=s.moduleId;s.quizId=null;s.revealId=null;save();render();return;}
       if(t.dataset.clWeek){let a=s.weeklyDone,k=t.dataset.clWeek;s.weeklyDone=a.includes(k)?a.filter(x=>x!==k):[...a,k];save();render();return;}
       if(t.dataset.clChapter){openAtlas(t.dataset.clChapter);return;}
@@ -262,6 +264,7 @@
         }
         default:return;
       }
+      if(s.tab!=='today')s.lastWorkingTab=s.tab;
       save();render();
     }
     function fallbackCopy(text){
