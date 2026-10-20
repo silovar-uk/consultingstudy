@@ -3,6 +3,15 @@
 import {chromium,webkit,devices} from 'playwright';
 import assert from 'node:assert/strict';
 const origin=process.env.BASE_URL||'http://127.0.0.1:8765/';
+async function openLabExtras(page) {
+  const more=page.locator('.cl-more-tools');
+  if(!(await more.evaluate(el=>el.open)))await more.locator('summary').click();
+}
+async function goToday(page) {
+  const menu=page.locator('#menuButton');
+  if(await menu.isVisible())await menu.click();
+  await page.locator('#mainNav > [data-view="home"]').click();
+}
 const variants=[
   {name:'Chromium desktop',browser:chromium,context:{viewport:{width:1366,height:850}}},
   {name:'WebKit mobile emulation',browser:webkit,context:{...devices['iPhone 13']}}
@@ -19,7 +28,7 @@ for(const v of variants){
   await page.getByRole('button',{name:'この講義を開く'}).click();
   assert.match(await page.locator('.cl-lesson h3').innerText(),/取引を資産と負債に翻訳する/);
   await page.getByRole('button',{name:'読了チェックを付ける'}).click();
-  await page.getByRole('button',{name:'今日',exact:true}).click();
+  await page.locator('.cert-lab [data-cl-tab="today"]').click();
   await page.getByRole('button',{name:'次の1問を解く'}).click();
   assert.match(await page.locator('.cl-question').innerText(),/掛けで売り上げた/);
   await page.locator('.cl-option').nth(1).click();
@@ -28,12 +37,13 @@ for(const v of variants){
   await page.getByRole('button',{name:'説明はまだ不安'}).click();
   await page.getByRole('button',{name:'次の問題'}).click();
   assert.match(await page.locator('.cl-question').innerText(),/普通預金/);
+  await openLabExtras(page);
   await page.getByRole('button',{name:'範囲と対応'}).click();
   assert.match(await page.locator('.cl-card').first().innerText(),/既存の43章/);
   await page.getByRole('button',{name:'成果物',exact:true}).click();
   const sample='実地の観測と公開資料を分けて扱い、仮説と判断基準を文書化した。';
   await page.locator('#clWorkText').fill(sample);
-  await page.getByRole('button',{name:'今日',exact:true}).click();
+  await page.locator('.cert-lab [data-cl-tab="today"]').click();
   await page.getByRole('button',{name:'成果物',exact:true}).click();
   assert.equal(await page.locator('#clWorkText').inputValue(),sample,'drafts survive tab navigation');
   await page.getByRole('button',{name:'この端末に保存'}).click();
@@ -87,6 +97,7 @@ for(const v of variants){
   assert.equal(await page.locator('#dpText').inputValue(),memo);
   assert.ok(await page.locator('[data-dp-self="0"]').isChecked());
   // 2026-10-20: 3段階の実力検証（初回→別事例→遅延ロック・再開）
+  await openLabExtras(page);
   await page.getByRole('button',{name:'実力検証',exact:true}).click();
   await page.locator('#cl-transfer-root .cl-tf').waitFor();
   await page.locator('#tfValue').fill('-2');
@@ -114,6 +125,7 @@ for(const v of variants){
   await page.locator('[data-tf-action="submit"]').click();
   assert.match(await page.locator('#cl-transfer-root').innerText(),/初見評価は、後日に解く/);
   // Authentic case: frozen first submission, external review worksheet and next-case transfer
+  await openLabExtras(page);
   await page.getByRole('button',{name:'判断メモ',exact:true}).click();
   await page.locator('#cl-evidence-root .cl-ec-editor').waitFor();
   assert.ok(await page.locator('[data-ec-case="ticket-sync-v1"]').isDisabled(),'case B locked before case A');
@@ -155,6 +167,28 @@ for(const v of variants){
   await page.locator('.cl-ec-comparison').waitFor();
   assert.equal(await page.locator('[data-ec-field="facts"]').inputValue(),second.facts);
   assert.ok(await page.locator('[data-ec-field="facts"]').getAttribute('readonly')!==null);
+  // Task-first home: 4 entrances, resume of last case, and existing routes
+  await goToday(page);
+  await page.locator('.ux-today').waitFor();
+  assert.equal(await page.locator('#mainNav > .nav-item').count(),4,'four primary destinations');
+  assert.equal(await page.locator('[data-action="start-purpose"]').count(),4,'four purposeful starts');
+  assert.match(await page.locator('.ux-resume').innerText(),/チケット|判断メモ/);
+  await page.locator('[data-action="resume-lab"]').click();
+  await page.locator('#cl-evidence-root .cl-ec').waitFor();
+  assert.equal(await page.locator('[data-ec-case="ticket-sync-v1"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('[data-ec-field="facts"]').inputValue(),second.facts);
+  await goToday(page);
+  await page.locator('[data-purpose="numbers"]').click();
+  assert.match(await page.locator('#breadcrumbs').innerText(),/財務|ワークスペース/);
+  await goToday(page);
+  await page.locator('[data-purpose="decision"]').click();
+  await page.locator('#cl-evidence-root .cl-ec').waitFor();
+  await goToday(page);
+  await page.locator('[data-purpose="learn"]').click();
+  await page.locator('.cl-lesson').waitFor();
+  await goToday(page);
+  await page.locator('[data-purpose="check"]').click();
+  await page.locator('#cl-transfer-root').waitFor();
   const overflows=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
   assert.ok(overflows.scrollWidth<=overflows.viewport+2,'horizontal viewport overflow: '+JSON.stringify(overflows));
   assert.deepEqual(errors,[],'uncaught page errors');
