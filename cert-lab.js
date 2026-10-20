@@ -89,15 +89,18 @@
   if(!s.notes[selected.id]?.text?.trim())return {kind:'work',moduleId:selected.id,title:'解けた知識を仕事へつなげる',detail:'「'+selected.title+'」の実務メモがまだありません。',button:'成果物をつくる'};
  return {kind:'work',moduleId:selected.id,title:'一つ前の仕事を、よりよく説明する',detail:'この領域の講義と問題は一巡しました。以前の成果物を確認し、改善してください。',button:'成果物を見直す'};
 }
-    const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['practice','実戦演習'],['assessment','実力検証'],['work','成果物'],['scope','範囲と対応'],['strategy','資格の判断']];
+    const tabs=[['today','今日'],['curriculum','教材'],['quiz','クイズ'],['practice','実戦演習'],['assessment','実力検証'],['evidence','判断メモ'],['work','成果物'],['scope','範囲と対応'],['strategy','資格の判断']];
     function render(){
       const tr=D.trackById(s.trackId), info=getStats(s,tr.id);
       const header=`<section class="cl-heading"><div><p class="cl-eyebrow">CONSULTING STUDY / SKILL × CERTIFICATION</p><h2>資格・実務ラボ</h2><p>資格に受かる前に、仕事で使えるようになる。読む → 解く → つくる → 復習する。</p></div><div class="cl-select-wrap"><label for="clTrack">学ぶ領域</label><select id="clTrack">${D.tracks.map(t=>`<option value="${t.id}" ${s.trackId===t.id?'selected':''}>${esc(t.short)}｜${esc(t.name)}</option>`).join('')}</select></div></section>
       <div class="cl-switcher" role="navigation" aria-label="資格学習メニュー">${tabs.map(([id,label])=>`<button type="button" class="cl-tab ${s.tab===id?'active':''}" data-cl-tab="${id}" ${s.tab===id?'aria-current="page"':''}>${label}${id==='quiz'&&info.due?` <span class="cl-count">${info.due}</span>`:''}</button>`).join('')}</div>`;
-      root.innerHTML=`<div class="cert-lab">${header}<div id="cl-panel" class="cl-panel">${s.tab==='today'?today(tr,info):s.tab==='curriculum'?curriculum(tr):s.tab==='quiz'?quiz(tr):s.tab==='practice'?'<div id="cl-deep-root"></div>':s.tab==='assessment'?'<div id="cl-transfer-root"></div>':s.tab==='work'?work(tr):s.tab==='scope'?scope(tr):strategy(tr)}</div><footer class="cl-footnote">問題とケースは本サイト作成の独自教材です。公式の模擬試験・合格判定ではありません。学習ログはこのブラウザに保存され、既存の「設定・データ」からJSONでバックアップできます。最終更新：2026年10月20日。</footer></div>`;
+      root.innerHTML=`<div class="cert-lab">${header}<div id="cl-panel" class="cl-panel">${s.tab==='today'?today(tr,info):s.tab==='curriculum'?curriculum(tr):s.tab==='quiz'?quiz(tr):s.tab==='practice'?'<div id="cl-deep-root"></div>':s.tab==='assessment'?'<div id="cl-transfer-root"></div>':s.tab==='evidence'?'<div id="cl-evidence-root"></div>':s.tab==='work'?work(tr):s.tab==='scope'?scope(tr):strategy(tr)}</div><footer class="cl-footnote">問題とケースは本サイト作成の独自教材です。公式の模擬試験・合格判定ではありません。学習ログはこのブラウザに保存され、既存の「設定・データ」からJSONでバックアップできます。最終更新：2026年10月20日。</footer></div>`;
       root.onclick=onClick;
       root.onchange=onChange;
       root.oninput=onInput;
+      if(s.tab==='evidence'&&window.CERT_LAB_EVIDENCE_UI){
+        window.CERT_LAB_EVIDENCE_UI.mount(root.querySelector('#cl-evidence-root'),s,{persist:save,toast});
+      }
       if(s.tab==='assessment'&&window.CERT_LAB_TRANSFER_UI){
         window.CERT_LAB_TRANSFER_UI.mount(root.querySelector('#cl-transfer-root'),s,{persist:save,toast,openModule:id=>{const m=D.moduleById(id);if(!m)return;s.trackId=m.trackId;s.moduleId=id;s.tab='curriculum';save();render();}});
       }
@@ -108,7 +111,7 @@
     function today(tr,info){
       const plan=recommendNext();
       const completedWeeks=s.weeklyDone.filter(x=>x.startsWith(tr.id+':')).length;
-      return `<section class="cl-hero"><div><p class="cl-eyebrow">NEXT REASON / 1 ACTION</p><h3>${esc(plan.title)}</h3><p>${esc(plan.detail)}</p><div class="cl-actions">${act(plan.button,'next-action','primary')}${act('7問の現在地診断','diagnostic','ghost')}${act('4択以外の実戦問題','practice','ghost')}${act('初見で実力を確かめる','assessment','ghost')}</div></div><div class="cl-hero-mark"><span>${Math.round(getPercent())}%</span><small>読了チェックの割合</small></div></section>
+      return `<section class="cl-hero"><div><p class="cl-eyebrow">NEXT REASON / 1 ACTION</p><h3>${esc(plan.title)}</h3><p>${esc(plan.detail)}</p><div class="cl-actions">${act(plan.button,'next-action','primary')}${act('7問の現在地診断','diagnostic','ghost')}${act('4択以外の実戦問題','practice','ghost')}${act('初見で実力を確かめる','assessment','ghost')}${tr.id==='pmp'?act('案件判断メモを作る','evidence','ghost'):''}</div></div><div class="cl-hero-mark"><span>${Math.round(getPercent())}%</span><small>読了チェックの割合</small></div></section>
       <div class="cl-metrics"><div><strong>${tr.modules.length}</strong><small>学習単元</small></div><div><strong>${info.answered}/${info.total}</strong><small>回答済み問題</small></div><div><strong>${info.due}</strong><small>復習対象</small></div><div><strong>${completedWeeks}/12</strong><small>週間タスク</small></div></div>
       <section class="cl-card"><div class="cl-card-header"><div><p class="cl-eyebrow">YOUR TRACK</p><h3>${esc(tr.exam)}の実務学習</h3></div><span class="cl-chip">${esc(tr.for)}</span></div><p>${esc(tr.summary)}</p><p class="cl-warning">確認事項：${esc(tr.caveat)}</p><p class="cl-source">一次情報：${source(D.references[tr.id])}</p></section>
       <section class="cl-card"><div class="cl-card-header"><div><p class="cl-eyebrow">THE 12-WEEK PLAN</p><h3>週ごとに一つ、成果を残す</h3></div><span class="cl-chip">週2〜3時間を想定した提案</span></div><p class="cl-muted">受験日までの合格計画ではなく、実務の能力を見極めるための12週間。自分のペースでチェックできます。</p><div class="cl-week-grid">${Array.from({length:12},(_,i)=>{let item=weekly(tr,i),key=tr.id+':'+i,done=s.weeklyDone.includes(key);return `<button type="button" class="cl-week ${done?'done':''}" data-cl-week="${key}" aria-pressed="${done}"><span class="cl-week-num">W${pad(i+1)} ${done?'✓':''}</span><strong>${esc(item[0])}</strong><span>${esc(item[1])}</span></button>`;}).join('')}</div></section>
@@ -206,6 +209,7 @@
         case 'scope':s.tab='scope';break;
         case 'practice':s.tab='practice';s.practiceStartModuleId=null;break;
         case 'assessment':s.tab='assessment';break;
+        case 'evidence':s.tab='evidence';break;
         case 'practice-module':s.tab='practice';s.practiceStartModuleId=s.moduleId;break;
         case 'diagnostic-next':s.diagnosticFeedback=null;break;
         case 'confidence-sure':
